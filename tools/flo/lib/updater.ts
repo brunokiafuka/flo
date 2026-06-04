@@ -8,16 +8,16 @@ import { colors } from "./ui.js";
 const CACHE_FILENAME = "update-check.json";
 const CHECK_TTL_MS = 12 * 60 * 60 * 1000; // 12h
 const FETCH_TIMEOUT_MS = 2500;
-// Source of truth: the version field of package.json on main. A "release" is
-// just bumping this field and merging — no git tag or GitHub Release needed.
-const REMOTE_PKG_URL = "https://raw.githubusercontent.com/brunokiafuka/flo/main/tools/flo/package.json";
+// Source of truth for the latest published version: the npm registry. A
+// "release" is `npm publish` of a bumped version field.
+const REMOTE_PKG_URL = "https://registry.npmjs.org/flo-tools/latest";
 
 export type UpdateCache = {
   checkedAt: number;
   latestVersion: string;
 };
 
-export type InstallSource = "brew" | "git" | "unknown";
+export type InstallSource = "npm" | "brew" | "git" | "unknown";
 
 export type UpdateStatus = {
   currentVersion: string;
@@ -79,31 +79,48 @@ export function compareVersions(a: string, b: string): number {
 
 /**
  * Detect how flo is installed from the absolute path to its module directory.
- * Homebrew installs live under .../Cellar/flo/...; everything else is treated
- * as a direct checkout.
+ * npm installs (global or local) live under a node_modules/ path; Homebrew
+ * installs live under .../Cellar/flo/...; everything else is treated as a
+ * direct checkout.
  */
 export function detectInstallSource(modulePath: string): InstallSource {
-  if (/\/Cellar\/flo\//.test(modulePath)) return "brew";
+  if (/\/Cellar\/flo(-tools)?\//.test(modulePath)) return "brew";
+  if (/[/\\]node_modules[/\\]/.test(modulePath)) return "npm";
   if (modulePath && modulePath.length > 0) return "git";
   return "unknown";
 }
 
 /** Human-readable command for refreshing flo. */
 export function updateHint(source: InstallSource, repoRoot?: string): string {
+  if (source === "npm") return "npm i -g flo-tools";
   if (source === "brew") return "brew upgrade flo";
   if (source === "git") {
     const where = repoRoot ? `cd ${repoRoot} && ` : "";
     return `${where}git pull && ./tools/flo/install`;
   }
-  return "brew upgrade flo (or git pull && ./tools/flo/install in your checkout)";
+  return "npm i -g flo-tools";
 }
 
+/**
+ * Read flo's own version from the nearest package.json above this module.
+ * Walks up from the module dir so it works whether running from compiled
+ * `dist/lib/` or directly from `lib/` via tsx.
+ */
 async function readCurrentVersion(): Promise<string> {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const pkgPath = join(here, "..", "package.json");
-  const raw = await readFile(pkgPath, "utf8");
-  const parsed = JSON.parse(raw) as { version?: string };
-  return parsed.version ?? "0.0.0";
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 5; i++) {
+    try {
+      const raw = await readFile(join(dir, "package.json"), "utf8");
+      const parsed = JSON.parse(raw) as { name?: string; version?: string };
+      if (parsed.version) return parsed.version;
+    } catch {
+      /* keep walking up */
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return "0.0.0";
 }
 
 function moduleRoot(): string {

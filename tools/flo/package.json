@@ -1,13 +1,39 @@
 {
-  "name": "flo",
+  "name": "flo-tools",
   "version": "0.2.2",
-  "private": true,
   "description": "Your local flow orchestrator — git, PRs, and project recipes.",
+  "type": "module",
   "bin": {
-    "flo": "./flo"
+    "flo": "./dist/flo.js"
   },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "cli",
+    "git",
+    "workflow",
+    "pull-request",
+    "trunk-based",
+    "developer-tools"
+  ],
+  "homepage": "https://github.com/brunokiafuka/flo/tree/main/tools/flo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brunokiafuka/workflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brunokiafuka/flo/issues"
+  },
+  "license": "MIT",
   "scripts": {
-    "test": "tsx --test lib/**/*.test.ts"
+    "build": "tsc && chmod +x dist/flo.js",
+    "dev": "tsx flo.ts",
+    "test": "tsx --test lib/**/*.test.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@poppinss/cliui": "^6.8.1",
@@ -15,10 +41,11 @@
     "enquirer": "^2.4.1",
     "execa": "^8.0.1",
     "inquirer": "^13.4.1",
-    "tsx": "^4.21.0",
     "yaml": "^2.6.1"
   },
   "devDependencies": {
-    "@types/cli-progress": "^3.11.6"
+    "@types/cli-progress": "^3.11.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.2"
   }
 }

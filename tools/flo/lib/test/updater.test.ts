@@ -66,6 +66,11 @@ describe("detectInstallSource", () => {
     assert.equal(detectInstallSource("/usr/local/Cellar/flo/0.1.0/tools/flo"), "brew");
   });
 
+  test("recognizes npm install paths", () => {
+    assert.equal(detectInstallSource("/usr/local/lib/node_modules/flo-tools/dist"), "npm");
+    assert.equal(detectInstallSource("/Users/bk/project/node_modules/flo-tools/dist/lib"), "npm");
+  });
+
   test("treats anything else with a path as a git checkout", () => {
     assert.equal(detectInstallSource("/Users/bk/code/flo/tools/flo"), "git");
     assert.equal(detectInstallSource("/home/alice/flo/tools/flo"), "git");
@@ -77,6 +82,10 @@ describe("detectInstallSource", () => {
 });
 
 describe("updateHint", () => {
+  test("npm source suggests a global reinstall", () => {
+    assert.equal(updateHint("npm"), "npm i -g flo-tools");
+  });
+
   test("brew source suggests brew upgrade", () => {
     assert.equal(updateHint("brew"), "brew upgrade flo");
   });
@@ -86,9 +95,7 @@ describe("updateHint", () => {
     assert.equal(updateHint("git"), "git pull && ./tools/flo/install");
   });
 
-  test("unknown source suggests both", () => {
-    const hint = updateHint("unknown");
-    assert.match(hint, /brew upgrade flo/);
-    assert.match(hint, /install/);
+  test("unknown source falls back to the npm install command", () => {
+    assert.equal(updateHint("unknown"), "npm i -g flo-tools");
   });
 });

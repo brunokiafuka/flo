@@ -34,5 +34,5 @@
     "unicorn/consistent-function-scoping": "off",
     "unicorn/prefer-top-level-await": "off"
   },
-  "ignorePatterns": ["node_modules", "Formula", "**/*.md"]
+  "ignorePatterns": ["node_modules", "Formula", "**/dist/**", "**/*.md"]
 }

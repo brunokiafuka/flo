@@ -4,6 +4,8 @@ node_modules
 .claude
 # flo — per-dev config
 .flo/
+# flo — compiled build output
+tools/flo/dist/
 
 oxlint.log
 oxfmt.log

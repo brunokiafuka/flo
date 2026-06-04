@@ -15,6 +15,12 @@ Live at **<https://brunokiafuka.github.io/flo/>**.
 - **[Recipes](https://brunokiafuka.github.io/flo/reference/recipes/)** — ready-made `flo.yml` patterns
 - **[Contributing guide](https://brunokiafuka.github.io/flo/contributing/guide/)** — local dev + release flow
 
+## Install
+
+```bash
+npm i -g flo-tools      # installs the `flo` command globally
+```
+
 ## Quickstart
 
 ```bash
