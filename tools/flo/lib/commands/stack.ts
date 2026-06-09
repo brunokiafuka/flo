@@ -12,6 +12,7 @@ import { colors, fail } from "../ui.js";
 
 import { navCommand, type NavDir } from "./nav.js";
 import { stackCreateCommand, type StackCreateOpts } from "./stackCreate.js";
+import { stackRestackCommand, type StackRestackOpts } from "./stackRestack.js";
 
 const NAV_DIRS = new Set<NavDir>(["up", "down", "top", "bottom"]);
 
@@ -75,6 +76,26 @@ function parseStackCreate(argv: string[]): StackCreateOpts {
   return opts;
 }
 
+function parseStackRestack(argv: string[]): StackRestackOpts {
+  const opts: StackRestackOpts = {};
+  for (const a of argv) {
+    switch (a) {
+      case "-s":
+      case "--stack":
+        opts.stack = true;
+        break;
+      case "--continue":
+        opts.continue = true;
+        break;
+      default:
+        if (a.startsWith("-")) fail(`Unknown flag for stack restack: ${a}`);
+        if (opts.branch) fail(`Unexpected extra argument for stack restack: ${a}`);
+        opts.branch = a;
+    }
+  }
+  return opts;
+}
+
 /** `flo stack [<subcommand>]` — dispatcher. Bare/`view` shows the graph. */
 export async function stackCommand(argv: string[]): Promise<void> {
   const [sub, ...rest] = argv;
@@ -85,6 +106,9 @@ export async function stackCommand(argv: string[]): Promise<void> {
       break;
     case "create":
       await stackCreateCommand(parseStackCreate(rest));
+      break;
+    case "restack":
+      await stackRestackCommand(parseStackRestack(rest));
       break;
     case "nav": {
       const dir = rest[0];
@@ -97,7 +121,7 @@ export async function stackCommand(argv: string[]): Promise<void> {
     }
     default:
       fail(
-        `Unknown stack subcommand "${sub}". Try: flo stack [view] | flo stack create | flo stack nav <dir>`,
+        `Unknown stack subcommand "${sub}". Try: flo stack [view] | flo stack create | flo stack restack | flo stack nav <dir>`,
       );
   }
 }
