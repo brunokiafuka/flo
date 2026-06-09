@@ -11,11 +11,14 @@ import {
   initCommand,
   modifyCommand,
   type ModifyOpts,
+  navCommand,
+  type NavDir,
   pushCommand,
   restackCommand,
   runCommand,
   setupCommand,
   type SetupOpts,
+  stackCommand,
   submitCommand,
   syncCommand,
 } from "./lib/commands/index.js";
@@ -40,6 +43,11 @@ Usage:
                             • a PR URL like https://github.com/o/r/pull/N
                           Hints "flo restack" when the result is behind trunk.
   flo checkout            Pick a local branch from a graph view and switch to it.
+  flo stack               Show the whole branch forest (tip on top), with each
+                          branch's open PR and a "needs restack" flag when its
+                          recorded base has drifted from its parent's tip.
+  flo up / down           Move one branch toward the tip / toward trunk.
+  flo top / bottom        Jump to the tip of the stack / the branch on trunk.
   flo restack [branch]    Rebase the current (or named) branch onto trunk,
                           leaving conflicts open for you to resolve.
   flo diff [flags]        Show what this branch changes vs trunk.
@@ -79,6 +87,11 @@ const BUILTIN_COMMANDS = new Set([
   "get",
   "checkout",
   "co",
+  "stack",
+  "up",
+  "down",
+  "top",
+  "bottom",
   "add",
   "diff",
   "commit",
@@ -226,6 +239,15 @@ async function main() {
     case "checkout":
     case "co":
       await checkoutCommand();
+      break;
+    case "stack":
+      await stackCommand();
+      break;
+    case "up":
+    case "down":
+    case "top":
+    case "bottom":
+      await navCommand(cmd as NavDir);
       break;
     case "add":
       await addCommand();

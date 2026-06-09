@@ -21,6 +21,30 @@ export async function ghMergedHeads(): Promise<Set<string>> {
   }
 }
 
+/**
+ * One `gh pr list` call → map of branch → open PR number, shared by the stack
+ * graph renderer (`flo stack`, `flo checkout`). `ghFailed` is true when `gh` is
+ * missing/unauthenticated so callers can show a tip instead of silent blanks.
+ */
+export async function fetchOpenPrs(branches: string[]): Promise<{ map: Map<string, number>; ghFailed: boolean }> {
+  const map = new Map<string, number>();
+  if (branches.length === 0) return { map, ghFailed: false };
+  try {
+    const r = await execa("gh", ["pr", "list", "--json", "number,headRefName", "--state", "open", "--limit", "200"], {
+      reject: false,
+    });
+    if (r.exitCode !== 0) return { map, ghFailed: true };
+    const list = JSON.parse(r.stdout) as { number: number; headRefName: string }[];
+    const wanted = new Set(branches);
+    for (const pr of list) {
+      if (wanted.has(pr.headRefName)) map.set(pr.headRefName, pr.number);
+    }
+  } catch {
+    return { map, ghFailed: true };
+  }
+  return { map, ghFailed: false };
+}
+
 /** Detect the trunk branch name. Prefers .flo/config.json, then origin/HEAD, then main/master. */
 export async function detectTrunk(): Promise<string> {
   const cfg = await loadConfig();
