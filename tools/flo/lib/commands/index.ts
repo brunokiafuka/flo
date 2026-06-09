@@ -11,5 +11,5 @@ export { restackCommand } from "./restack.js";
 export { runCommand } from "./run.js";
 export { setupCommand, type SetupOpts } from "./setup.js";
 export { stackCommand } from "./stack.js";
-export { submitCommand } from "./submit.js";
+export { submitCommand, type SubmitOpts } from "./submit.js";
 export { syncCommand } from "./sync.js";

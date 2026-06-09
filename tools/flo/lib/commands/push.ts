@@ -13,24 +13,32 @@ export type PushResult = {
   firstPush: boolean;
 };
 
+/**
+ * Push a named branch with --force-with-lease, setting upstream on first push.
+ * Works without checking the branch out (needed for stacked submit's bottom-up
+ * push of the whole ancestor chain).
+ */
+export async function pushNamedBranch(branch: string): Promise<PushResult> {
+  const upstream = await upstreamOf(branch);
+  const args = upstream
+    ? ["push", "--force-with-lease", "origin", branch]
+    : ["push", "-u", "origin", branch];
+  const r = await execa("git", args, { reject: false });
+  return {
+    exitCode: r.exitCode ?? 0,
+    stdout: r.stdout ?? "",
+    stderr: r.stderr ?? "",
+    firstPush: !upstream,
+  };
+}
+
 /** Core push used by both `flo push` and `flo submit`. Captures output. */
 export async function pushCurrentBranch(): Promise<{ branch: string; result: PushResult }> {
   const branch = await currentBranch();
   if (!branch || branch === "HEAD") {
     fail("You're in detached HEAD — check out a branch first.");
   }
-  const upstream = await upstreamOf(branch);
-  const args = upstream ? ["push", "--force-with-lease"] : ["push", "-u", "origin", "HEAD"];
-  const r = await execa("git", args, { reject: false });
-  return {
-    branch,
-    result: {
-      exitCode: r.exitCode ?? 0,
-      stdout: r.stdout ?? "",
-      stderr: r.stderr ?? "",
-      firstPush: !upstream,
-    },
-  };
+  return { branch, result: await pushNamedBranch(branch) };
 }
 
 export async function pushCommand(): Promise<void> {
