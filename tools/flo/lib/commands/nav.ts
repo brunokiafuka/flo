@@ -17,14 +17,15 @@ import { colors, fail, success } from "../ui.js";
 
 export type NavDir = "up" | "down" | "top" | "bottom";
 
-const RESOLVERS: Record<NavDir, (forest: Forest, branch: string) => NavResult> = {
-  up: navUp,
-  down: navDown,
-  top: navTop,
-  bottom: navBottom,
-};
+const RESOLVERS: Record<NavDir, (forest: Forest, branch: string) => NavResult> =
+  {
+    up: navUp,
+    down: navDown,
+    top: navTop,
+    bottom: navBottom,
+  };
 
-/** `flo up` / `down` / `top` / `bottom` — move along the stack via flo-parent. */
+/** `flo stack nav up` / `down` / `top` / `bottom` — move along the stack via flo-parent. */
 export async function navCommand(dir: NavDir): Promise<void> {
   const [trunk, current, info, parents, recordedBases] = await Promise.all([
     detectTrunk(),
@@ -34,7 +35,12 @@ export async function navCommand(dir: NavDir): Promise<void> {
     readRecordedBases(),
   ]);
 
-  const forest = buildForest({ trunk, tips: tipsFrom(info), parents, recordedBases });
+  const forest = buildForest({
+    trunk,
+    tips: tipsFrom(info),
+    parents,
+    recordedBases,
+  });
   const res = RESOLVERS[dir](forest, current);
 
   if ("error" in res) fail(res.error);
@@ -45,7 +51,8 @@ export async function navCommand(dir: NavDir): Promise<void> {
   }
 
   const co = await git(["checkout", "--quiet", target], { allowFail: true });
-  if (co.exitCode !== 0) fail(co.stderr.trim() || `Couldn't switch to ${target}.`);
+  if (co.exitCode !== 0)
+    fail(co.stderr.trim() || `Couldn't switch to ${target}.`);
 
   const { map: prMap } = await fetchOpenPrs([target]);
   const pr = prMap.get(target);
