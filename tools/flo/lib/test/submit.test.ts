@@ -1,12 +1,7 @@
 import { strict as assert } from "node:assert";
 import { describe, test } from "node:test";
 
-import {
-  FLO_STACK_MARKER,
-  pickFloCommentId,
-  renderStackComment,
-  type StackCommentEntry,
-} from "../commands/submit.js";
+import { FLO_STACK_MARKER, pickFloCommentId, renderStackComment, type StackCommentEntry } from "../commands/submit.js";
 
 const entries: StackCommentEntry[] = [
   { branch: "feat_a", number: 41 },

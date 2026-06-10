@@ -1,15 +1,8 @@
 import { currentBranch } from "../git.js";
-import {
-  buildForest,
-  readBranchInfo,
-  readParents,
-  readRecordedBases,
-  tipsFrom,
-} from "../stack.js";
+import { buildForest, readBranchInfo, readParents, readRecordedBases, tipsFrom } from "../stack.js";
 import { renderForest } from "../stackRender.js";
 import { detectTrunk, fetchOpenPrs } from "../trunk.js";
 import { colors, fail } from "../ui.js";
-
 import { navCommand, type NavDir } from "./nav.js";
 import { stackCreateCommand, type StackCreateOpts } from "./stackCreate.js";
 import { stackRestackCommand, type StackRestackOpts } from "./stackRestack.js";
@@ -115,10 +108,8 @@ export async function stackCommand(argv: string[]): Promise<void> {
       break;
     case "nav": {
       const dir = rest[0];
-      if (!dir)
-        fail("flo stack navigates needs a direction: up | down | top | bottom");
-      if (!NAV_DIRS.has(dir as NavDir))
-        fail(`Unknown direction "${dir}". Try: up | down | top | bottom`);
+      if (!dir) fail("flo stack navigates needs a direction: up | down | top | bottom");
+      if (!NAV_DIRS.has(dir as NavDir)) fail(`Unknown direction "${dir}". Try: up | down | top | bottom`);
       await navCommand(dir as NavDir);
       break;
     }

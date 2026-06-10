@@ -42,8 +42,9 @@ export async function stackCreateCommand(opts: StackCreateOpts): Promise<void> {
     message = await promptInput("What's the commit message?");
     if (!message) fail("I need a message to commit.");
   }
+  const msg: string = message; // narrowed; stable reference for the task closures
 
-  const name = opts.name?.trim() || (await suggestBranchName(message));
+  const name = opts.name?.trim() || (await suggestBranchName(msg));
   if (!name) fail("Couldn't work out a branch name — pass one explicitly.");
 
   const tm = ui.tasks();
@@ -66,8 +67,8 @@ export async function stackCreateCommand(opts: StackCreateOpts): Promise<void> {
   }
 
   tm.add("Committing", async (task) => {
-    task.update(`git commit -m "${message!.slice(0, 60)}${message!.length > 60 ? "…" : ""}"`);
-    const r = await git(["commit", "-m", message!], { allowFail: true });
+    task.update(`git commit -m "${msg.slice(0, 60)}${msg.length > 60 ? "…" : ""}"`);
+    const r = await git(["commit", "-m", msg], { allowFail: true });
     commitOutput = [r.stdout, r.stderr].filter(Boolean).join("\n");
     if (r.exitCode !== 0) return task.error("commit didn't go through");
     return "committed";

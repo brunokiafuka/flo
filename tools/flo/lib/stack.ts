@@ -152,8 +152,7 @@ function effectiveParent(branch: string, input: ForestInput): string | null {
 
 /** Build the in-memory DAG from the batched reads. Pure. */
 export function buildForest(input: ForestInput): Forest {
-  const branches = new Set(input.tips.keys());
-  branches.add(input.trunk); // trunk always present, even with no commits listed
+  const branches = new Set([...input.tips.keys(), input.trunk]); // trunk always present
 
   const nodes = new Map<string, StackNode>();
   for (const branch of branches) {
@@ -172,7 +171,8 @@ export function buildForest(input: ForestInput): Forest {
   for (const branch of branches) {
     if (branch === input.trunk) continue;
     const parent = effectiveParent(branch, input);
-    nodes.get(branch)!.parent = parent;
+    const node = nodes.get(branch);
+    if (node) node.parent = parent;
     const parentNode = parent ? nodes.get(parent) : undefined;
     if (parentNode) {
       parentNode.children.push(branch);
@@ -185,7 +185,7 @@ export function buildForest(input: ForestInput): Forest {
   for (const node of nodes.values()) {
     if (node.isTrunk || !node.parent) continue;
     const parentTip = nodes.get(node.parent)?.tip ?? null;
-    node.needsRestack = node.recordedBase != null && parentTip != null && node.recordedBase !== parentTip;
+    node.needsRestack = node.recordedBase !== null && parentTip !== null && node.recordedBase !== parentTip;
   }
 
   for (const node of nodes.values()) node.children.sort();
@@ -255,7 +255,7 @@ export function ancestorPathTo(forest: Forest, branch: string): string[] {
     path.push(cur.branch);
     cur = cur.parent ? forest.nodes.get(cur.parent) : undefined;
   }
-  return path.reverse();
+  return path.toReversed();
 }
 
 /**

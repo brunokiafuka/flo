@@ -79,8 +79,8 @@ export function gitFetch(args: string[]): Promise<{ exitCode: number; stderr: st
     let bar: cliProgress.SingleBar | null = null;
     let currentPhase = "";
 
-    const ensureBar = () => {
-      if (bar) return;
+    const ensureBar = (): cliProgress.SingleBar => {
+      if (bar) return bar;
       bar = new cliProgress.SingleBar(
         {
           format: `${colors.cyan("{phase}")} ${colors.green("{bar}")} ${colors.bold("{percentage}%")}`,
@@ -94,6 +94,7 @@ export function gitFetch(args: string[]): Promise<{ exitCode: number; stderr: st
         cliProgress.Presets.shades_classic,
       );
       bar.start(100, 0, { phase: "".padEnd(22, " ") });
+      return bar;
     };
 
     child.stderr.on("data", (buf: Buffer) => {
@@ -106,11 +107,11 @@ export function gitFetch(args: string[]): Promise<{ exitCode: number; stderr: st
         if (!pctMatch) continue;
         const pct = Math.min(100, Math.max(0, parseInt(pctMatch[1], 10)));
         const phase = (trimmed.split(":")[0] ?? "").slice(0, 22).padEnd(22, " ");
-        ensureBar();
+        const activeBar = ensureBar();
         if (phase !== currentPhase) {
           currentPhase = phase;
         }
-        bar!.update(pct, { phase });
+        activeBar.update(pct, { phase });
       }
     });
 
