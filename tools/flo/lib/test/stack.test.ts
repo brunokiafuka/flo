@@ -53,22 +53,22 @@ describe("buildForest", () => {
   test("linear chain: parents, children, single root", () => {
     const f = buildForest(input(linear));
     assert.equal(f.roots.join(","), "add_button");
-    assert.equal(f.nodes.get("add_button")!.parent, "main");
-    assert.equal(f.nodes.get("login_form")!.parent, "add_button");
-    assert.deepEqual(f.nodes.get("login_form")!.children, ["wire_auth"]);
-    assert.deepEqual(f.nodes.get("main")!.children, ["add_button"]);
-    assert.equal(f.nodes.get("wire_auth")!.children.length, 0);
+    assert.equal(f.nodes.get("add_button")?.parent, "main");
+    assert.equal(f.nodes.get("login_form")?.parent, "add_button");
+    assert.deepEqual(f.nodes.get("login_form")?.children, ["wire_auth"]);
+    assert.deepEqual(f.nodes.get("main")?.children, ["add_button"]);
+    assert.equal(f.nodes.get("wire_auth")?.children.length, 0);
   });
 
   test("no flo-parent → treated as a root on trunk", () => {
     const f = buildForest(input({ branches: { stray: { sha: "s1" } } }));
-    assert.equal(f.nodes.get("stray")!.parent, "main");
+    assert.equal(f.nodes.get("stray")?.parent, "main");
     assert.deepEqual(f.roots, ["stray"]);
   });
 
   test("flo-parent pointing at a deleted branch → falls back to trunk", () => {
     const f = buildForest(input({ branches: { orphan: { parent: "ghost", sha: "o1" } } }));
-    assert.equal(f.nodes.get("orphan")!.parent, "main");
+    assert.equal(f.nodes.get("orphan")?.parent, "main");
   });
 
   test("fork: children sorted, both under shared parent", () => {
@@ -81,14 +81,14 @@ describe("buildForest", () => {
         },
       }),
     );
-    assert.deepEqual(f.nodes.get("login_form")!.children, ["telemetry", "wire_auth"]);
+    assert.deepEqual(f.nodes.get("login_form")?.children, ["telemetry", "wire_auth"]);
   });
 });
 
 describe("needsRestack", () => {
   test("recorded base equal to parent tip → in sync", () => {
     const f = buildForest(input(linear));
-    assert.equal(f.nodes.get("login_form")!.needsRestack, false);
+    assert.equal(f.nodes.get("login_form")?.needsRestack, false);
   });
 
   test("recorded base stale vs parent's current tip → needs restack", () => {
@@ -100,12 +100,12 @@ describe("needsRestack", () => {
         },
       }),
     );
-    assert.equal(f.nodes.get("login_form")!.needsRestack, true);
+    assert.equal(f.nodes.get("login_form")?.needsRestack, true);
   });
 
   test("no recorded base → can't tell, not stale", () => {
     const f = buildForest(input({ branches: { x: { parent: "main", sha: "x1" } } }));
-    assert.equal(f.nodes.get("x")!.needsRestack, false);
+    assert.equal(f.nodes.get("x")?.needsRestack, false);
   });
 });
 
@@ -239,7 +239,9 @@ describe("navigation", () => {
 
   test("up on a fork is ambiguous", () => {
     const fork = buildForest(
-      input({ branches: { a: { parent: "main", sha: "a1" }, b: { parent: "a", sha: "b1" }, c: { parent: "a", sha: "c1" } } }),
+      input({
+        branches: { a: { parent: "main", sha: "a1" }, b: { parent: "a", sha: "b1" }, c: { parent: "a", sha: "c1" } },
+      }),
     );
     const r = navUp(fork, "a");
     assert.ok("error" in r && /forks into/.test(r.error));
@@ -270,7 +272,7 @@ describe("layoutForest gutters", () => {
   test("trunk renders last with an empty gutter", () => {
     const f = buildForest(input(linear));
     const rows = layoutForest(f);
-    const last = rows[rows.length - 1];
+    const last = rows.at(-1);
     assert.equal(last.kind, "node");
     assert.ok(last.kind === "node" && last.isTrunk && last.gutter === "");
   });

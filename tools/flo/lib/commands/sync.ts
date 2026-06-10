@@ -1,4 +1,5 @@
 import { branchExists, currentBranch, git, hasUncommittedChanges } from "../git.js";
+import { topoOrder } from "../stack.js";
 import {
   applyPrune,
   deleteMerged,
@@ -8,7 +9,6 @@ import {
   rebaseInProgress,
   rebaseStep,
 } from "../stackEngine.js";
-import { topoOrder } from "../stack.js";
 import { detectTrunk } from "../trunk.js";
 import { colors, fail, info, success, warn } from "../ui.js";
 
@@ -43,7 +43,9 @@ export async function syncCommand(): Promise<void> {
   if (detected.length > 0) {
     deletable = await applyPrune(forest, new Set(detected));
     forest = await loadForest();
-    info(`Cleaning up ${detected.length} merged branch${detected.length === 1 ? "" : "es"}, re-parenting onto ${colors.bold(trunk)}.`);
+    info(
+      `Cleaning up ${detected.length} merged branch${detected.length === 1 ? "" : "es"}, re-parenting onto ${colors.bold(trunk)}.`,
+    );
   }
   const mergedSet = new Set(deletable);
 
@@ -85,7 +87,9 @@ export async function syncCommand(): Promise<void> {
     console.log("");
     warn("Unable to cleanly sync the following branches:");
     for (const b of failed) console.log(`  ${colors.yellow("-")} ${colors.bold(b)}`);
-    console.log(colors.dim(`  Run ${colors.cyan("flo stack restack <branch>")} on each to resolve the conflict by hand.`));
+    console.log(
+      colors.dim(`  Run ${colors.cyan("flo stack restack <branch>")} on each to resolve the conflict by hand.`),
+    );
     process.exit(1);
   }
   success(`All set — everything's rebased on ${trunk} 🎉`);

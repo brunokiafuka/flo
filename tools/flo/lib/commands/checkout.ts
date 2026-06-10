@@ -42,7 +42,7 @@ export async function checkoutCommand(): Promise<void> {
 
   const choices = order.map((branch) => {
     const pr = prMap.get(branch);
-    const hint = pr ? `PR#${pr}` : branch === trunk ? "(trunk)" : prMap.size ? "—" : "";
+    const hint = pr ? `PR#${pr}` : branch === trunk ? "(trunk)" : prMap.size > 0 ? "—" : "";
     return { name: branch, message: branch, ...(hint ? { hint } : {}) };
   });
   const limit = Math.min(order.length, Math.max(10, Math.min(18, (process.stdout.rows ?? 30) - 8)));
@@ -74,6 +74,6 @@ export async function checkoutCommand(): Promise<void> {
     })
     .run();
 
-  const prNote = prOnTarget != null ? `  ${colors.dim(`·  PR#${prOnTarget}`)}` : "";
+  const prNote = prOnTarget !== undefined ? `  ${colors.dim(`·  PR#${prOnTarget}`)}` : "";
   success(`Switched to ${colors.bold(target)}${prNote}`);
 }

@@ -1,5 +1,4 @@
 import type { BranchInfo, Forest } from "./stack.js";
-
 import { colors } from "./ui.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +53,8 @@ export function layoutForest(forest: Forest, current?: string): LaidOutRow[] {
   };
 
   order.forEach((branch, idx) => {
-    const node = forest.nodes.get(branch)!;
+    const node = forest.nodes.get(branch);
+    if (!node) return;
     const targets: number[] = [];
     for (let i = 0; i < lanes.length; i++) if (lanes[i] === branch) targets.push(i);
 
@@ -81,7 +81,7 @@ export function layoutForest(forest: Forest, current?: string): LaidOutRow[] {
 
     // Hand the lane down to the parent (null terminates at trunk / a true root).
     lanes[laneN] = node.parent && node.parent !== branch ? node.parent : null;
-    while (lanes.length > 0 && lanes[lanes.length - 1] === null) lanes.pop();
+    while (lanes.length > 0 && lanes.at(-1) === null) lanes.pop();
 
     if (idx < order.length - 1 && lanes.some((l) => l !== null)) {
       trackWidth();
@@ -163,8 +163,7 @@ export function renderForest(forest: Forest, opts: RenderOpts = {}): { lines: st
   const maxPr = Math.max(0, ...rows.map((r) => (r.kind === "node" && !r.isTrunk ? prLabel(r.branch).length : 0)));
 
   const cols = process.stdout.columns;
-  const subjectCap =
-    cols && cols > 0 ? Math.max(20, Math.min(80, cols - 6 - nameCol - (maxPr ? maxPr + 2 : 0))) : 50;
+  const subjectCap = cols && cols > 0 ? Math.max(20, Math.min(80, cols - 6 - nameCol - (maxPr ? maxPr + 2 : 0))) : 50;
 
   const order: string[] = [];
   const lines: string[] = [];

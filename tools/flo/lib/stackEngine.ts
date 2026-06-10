@@ -132,14 +132,12 @@ export async function rebaseStep(branch: string, parent: string): Promise<StepOu
   const recordedBase = await getParentSha(branch);
 
   if (recordedBase === parentTip) return { status: "skipped", parentTip };
-  if (recordedBase == null && (await isAncestor(parentTip, branch))) {
+  if (recordedBase === null && (await isAncestor(parentTip, branch))) {
     await setParentSha(branch, parentTip); // adopt an already-current branch
     return { status: "skipped", parentTip };
   }
 
-  const args = recordedBase
-    ? ["rebase", "--onto", parentTip, recordedBase, branch]
-    : ["rebase", parentTip, branch];
+  const args = recordedBase ? ["rebase", "--onto", parentTip, recordedBase, branch] : ["rebase", parentTip, branch];
   const r = await git(args, { allowFail: true });
   if (r.exitCode !== 0) return { status: "conflict", parentTip };
 

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { branchExists, currentBranch, git, hasUncommittedChanges } from "../git.js";
+import { descendantsNeedingRestack, restackScope, setParentSha, stackRootOf, subtreeOf, topoOrder } from "../stack.js";
 import {
   applyPrune,
   deleteMerged,
@@ -12,14 +13,6 @@ import {
   rebaseInProgress,
   rebaseStep,
 } from "../stackEngine.js";
-import {
-  descendantsNeedingRestack,
-  restackScope,
-  setParentSha,
-  stackRootOf,
-  subtreeOf,
-  topoOrder,
-} from "../stack.js";
 import { detectTrunk } from "../trunk.js";
 import { colors, fail, info, success, warn } from "../ui.js";
 
@@ -107,7 +100,9 @@ function printConflict(branch: string, parent: string): void {
   console.error(
     `  ${colors.bold("2.")} ${colors.cyan("git rebase --continue")} ${colors.dim("(or git rebase --abort to bail)")}`,
   );
-  console.error(`  ${colors.bold("3.")} ${colors.cyan("flo stack restack --continue")} to finish the rest of the stack`);
+  console.error(
+    `  ${colors.bold("3.")} ${colors.cyan("flo stack restack --continue")} to finish the rest of the stack`,
+  );
   console.error("");
 }
 
@@ -124,7 +119,9 @@ async function finalize(target: string, includeDescendants: boolean, deletable: 
     const stale = descendantsNeedingRestack(forest, target);
     if (stale.length > 0) {
       console.log("");
-      warn(`Branches above ${colors.bold(target)} still need a restack: ${stale.map((b) => colors.bold(b)).join(", ")}`);
+      warn(
+        `Branches above ${colors.bold(target)} still need a restack: ${stale.map((b) => colors.bold(b)).join(", ")}`,
+      );
       console.log(colors.dim(`  Run ${colors.cyan("flo stack restack -s")} to include them.`));
     }
   }
@@ -210,7 +207,9 @@ async function resume(): Promise<void> {
   if (!state) fail("No restack in progress — nothing to continue.");
 
   if (await rebaseInProgress()) {
-    fail("The rebase isn't finished. Resolve conflicts, git add, then git rebase --continue before flo stack restack --continue.");
+    fail(
+      "The rebase isn't finished. Resolve conflicts, git add, then git rebase --continue before flo stack restack --continue.",
+    );
   }
   if (await hasUncommittedChanges()) {
     fail("You have uncommitted changes — commit or stash them before continuing the restack.");

@@ -233,9 +233,7 @@ async function main() {
     console.error(`I don't know the command "${cmd}".`);
     if (recipes && Object.keys(recipes.commands).length > 0) {
       console.error("");
-      console.error(
-        `Recipes in flo.yml: ${listRecipeNames(recipes).join(", ")}`,
-      );
+      console.error(`Recipes in flo.yml: ${listRecipeNames(recipes).join(", ")}`);
     }
     console.error(HELP);
     process.exit(1);
@@ -244,11 +242,7 @@ async function main() {
   // Commands that don't need flo config — skip the setup prompt entirely.
   const NO_CONFIG_NEEDED = new Set(["setup", "run", "init"]);
   if (!NO_CONFIG_NEEDED.has(cmd) && (await loadConfig()) === null) {
-    console.log(
-      c.dim(
-        `  No flo config found for this repo (expected at ${c.b(await configLabel())}).`,
-      ),
-    );
+    console.log(c.dim(`  No flo config found for this repo (expected at ${c.b(await configLabel())}).`));
     if (process.stdout.isTTY) {
       const { runSetup } = await inquirer.prompt<{ runSetup: boolean }>([
         {
@@ -262,11 +256,7 @@ async function main() {
         await setupCommand();
         console.log("");
       } else {
-        console.log(
-          c.dim(
-            `  Carrying on with defaults. Run ${c.cyan("flo setup")} later when you're ready.`,
-          ),
-        );
+        console.log(c.dim(`  Carrying on with defaults. Run ${c.cyan("flo setup")} later when you're ready.`));
       }
     } else {
       console.log(c.dim(`  Run ${c.cyan("flo setup")} to configure it.`));
@@ -324,16 +314,19 @@ async function main() {
   }
 }
 
-main()
-  .then(async () => {
+async function run() {
+  try {
+    await main();
     const cmd = process.argv[2];
     if (shouldCheckForUpdate(cmd)) await maybeNotifyUpdate();
-  })
-  .catch((err) => {
+  } catch (err) {
     // enquirer throws on Ctrl-C with an empty value — treat as clean exit.
     if (err === "" || err === undefined) {
       console.error("\nOK, cancelled.");
       process.exit(130);
     }
     fail(err instanceof Error ? err.message : String(err));
-  });
+  }
+}
+
+void run();

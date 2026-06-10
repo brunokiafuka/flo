@@ -20,9 +20,7 @@ export type PushResult = {
  */
 export async function pushNamedBranch(branch: string): Promise<PushResult> {
   const upstream = await upstreamOf(branch);
-  const args = upstream
-    ? ["push", "--force-with-lease", "origin", branch]
-    : ["push", "-u", "origin", branch];
+  const args = upstream ? ["push", "--force-with-lease", "origin", branch] : ["push", "-u", "origin", branch];
   const r = await execa("git", args, { reject: false });
   return {
     exitCode: r.exitCode ?? 0,
