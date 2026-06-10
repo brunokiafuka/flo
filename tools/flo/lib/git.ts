@@ -50,6 +50,12 @@ export async function hasUnstagedChanges(): Promise<boolean> {
   return r.exitCode !== 0;
 }
 
+export async function hasStagedChanges(): Promise<boolean> {
+  // `diff --cached --quiet` exits 1 when there are staged changes.
+  const r = await git(["diff", "--cached", "--quiet"], { allowFail: true });
+  return r.exitCode !== 0;
+}
+
 export async function localBranches(): Promise<string[]> {
   const r = await git(["for-each-ref", "--format=%(refname:short)", "refs/heads/"]);
   return r.stdout

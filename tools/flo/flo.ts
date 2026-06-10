@@ -11,8 +11,6 @@ import {
   initCommand,
   modifyCommand,
   type ModifyOpts,
-  navCommand,
-  type NavDir,
   pushCommand,
   restackCommand,
   runCommand,
@@ -43,11 +41,17 @@ Usage:
                             • a PR URL like https://github.com/o/r/pull/N
                           Hints "flo restack" when the result is behind trunk.
   flo checkout            Pick a local branch from a graph view and switch to it.
-  flo stack               Show the whole branch forest (tip on top), with each
+  flo stack [view]        Show the whole branch forest (tip on top), with each
                           branch's open PR and a "needs restack" flag when its
                           recorded base has drifted from its parent's tip.
-  flo up / down           Move one branch toward the tip / toward trunk.
-  flo top / bottom        Jump to the tip of the stack / the branch on trunk.
+  flo stack create [name] Create a branch stacked on the current branch and
+                          commit in one go. Records the current branch as the
+                          new branch's parent (so it shows up in flo stack).
+    -m <msg>              commit message (asks if omitted)
+    -a                    stage all changes first
+  flo stack nav <dir>    Move along the stack: up (toward the tip), down
+                          (toward trunk), top (the tip), bottom (the branch
+                          sitting on trunk).
   flo restack [branch]    Rebase the current (or named) branch onto trunk,
                           leaving conflicts open for you to resolve.
   flo diff [flags]        Show what this branch changes vs trunk.
@@ -88,10 +92,6 @@ const BUILTIN_COMMANDS = new Set([
   "checkout",
   "co",
   "stack",
-  "up",
-  "down",
-  "top",
-  "bottom",
   "add",
   "diff",
   "commit",
@@ -199,7 +199,9 @@ async function main() {
     console.error(`I don't know the command "${cmd}".`);
     if (recipes && Object.keys(recipes.commands).length > 0) {
       console.error("");
-      console.error(`Recipes in flo.yml: ${listRecipeNames(recipes).join(", ")}`);
+      console.error(
+        `Recipes in flo.yml: ${listRecipeNames(recipes).join(", ")}`,
+      );
     }
     console.error(HELP);
     process.exit(1);
@@ -208,7 +210,11 @@ async function main() {
   // Commands that don't need flo config — skip the setup prompt entirely.
   const NO_CONFIG_NEEDED = new Set(["setup", "run", "init"]);
   if (!NO_CONFIG_NEEDED.has(cmd) && (await loadConfig()) === null) {
-    console.log(c.dim(`  No flo config found for this repo (expected at ${c.b(await configLabel())}).`));
+    console.log(
+      c.dim(
+        `  No flo config found for this repo (expected at ${c.b(await configLabel())}).`,
+      ),
+    );
     if (process.stdout.isTTY) {
       const { runSetup } = await inquirer.prompt<{ runSetup: boolean }>([
         {
@@ -222,7 +228,11 @@ async function main() {
         await setupCommand();
         console.log("");
       } else {
-        console.log(c.dim(`  Carrying on with defaults. Run ${c.cyan("flo setup")} later when you're ready.`));
+        console.log(
+          c.dim(
+            `  Carrying on with defaults. Run ${c.cyan("flo setup")} later when you're ready.`,
+          ),
+        );
       }
     } else {
       console.log(c.dim(`  Run ${c.cyan("flo setup")} to configure it.`));
@@ -241,13 +251,7 @@ async function main() {
       await checkoutCommand();
       break;
     case "stack":
-      await stackCommand();
-      break;
-    case "up":
-    case "down":
-    case "top":
-    case "bottom":
-      await navCommand(cmd as NavDir);
+      await stackCommand(rest);
       break;
     case "add":
       await addCommand();
