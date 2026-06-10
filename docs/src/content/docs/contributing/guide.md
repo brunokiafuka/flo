@@ -40,60 +40,30 @@ A push to `main` that touches `docs/**` triggers `.github/workflows/deploy-docs.
 
 ## Cutting a release
 
-flo uses **`tools/flo/package.json`'s `version` field on `main`** as the source of truth for "what's the latest version?". The in-flo update check fetches that file directly. A release is just:
+flo is published to npm as [`flo-tools`](https://www.npmjs.com/package/flo-tools), and **`tools/flo/package.json`'s `version` field on `main`** is the source of truth for the in-flo update check (it fetches that file directly). A release is:
 
 1. **Bump the version** in `tools/flo/package.json` (`0.2.0` → `0.3.0`).
-2. **Merge to `main`.**
+2. **Publish to npm** (see below).
+3. **Merge to `main`.**
 
-That's it. Users get the update notice the next time their local cache expires (12h TTL).
+Users on `npm i -g flo-tools` upgrade with `npm i -g flo-tools@latest`, and the update notice fires the next time their local cache expires (12h TTL) regardless of how they installed.
 
 There's a helper too — `flo fr` (alias for `flo release-flo`) runs `scripts/release.sh`, which handles the bump + commit + push interactively.
 
-### Tagged release (optional, for Homebrew pinning)
+### Publishing to npm
 
-Only needed if you want a pinned, reproducible Homebrew install (`brew install flo` without `--HEAD`). Solo-tool usage can usually skip this entirely.
+From `tools/flo`:
 
-1. **Tag the repo**
-
-   ```bash
-   git tag v0.3.0
-   git push origin v0.3.0
-   ```
-
-2. **Grab the tarball SHA**
-
-   ```bash
-   curl -sL https://github.com/brunokiafuka/flo/archive/refs/tags/v0.3.0.tar.gz | shasum -a 256
-   ```
-
-3. **Update [`Formula/flo.rb`](https://github.com/brunokiafuka/flo/blob/main/Formula/flo.rb)**
-
-   Add (or update) `url` and `sha256`, keeping `head` around so `--HEAD` installs still work:
-
-   ```ruby
-   url "https://github.com/brunokiafuka/flo/archive/refs/tags/v0.3.0.tar.gz"
-   sha256 "<paste the shasum output>"
-   head "https://github.com/brunokiafuka/flo.git", branch: "main"
-   ```
-
-4. **Commit, push, and you're done.** The next `brew upgrade flo` picks up the new version.
-
-## HEAD vs versioned at a glance
-
-|                     | `--HEAD`                    | Versioned                |
-| ------------------- | --------------------------- | ------------------------ |
-| Install command     | `brew install --HEAD flo`   | `brew install flo`       |
-| Update strategy     | `brew upgrade --fetch-HEAD` | `brew upgrade`           |
-| Reproducible builds | ❌                          | ✅                       |
-| Maintenance cost    | Zero                        | Bump formula per release |
-
-For a solo tool `--HEAD` is usually fine. Switch to tagged releases once others start relying on flo.
-
-## Formula layout
-
-```
-Formula/
-└── flo.rb          # one formula per tool; each is self-contained
+```bash
+cd tools/flo
+npm publish
 ```
 
-The formula runs `npm install` inside `tools/flo` at build time, so installers only need `node` (declared via `depends_on "node"`).
+- `prepublishOnly` runs the build (`tsc`) first, so `dist/` is always fresh.
+- Only `dist/` ships — see the `files` field in `package.json`.
+
+Verify with:
+
+```bash
+npm view flo-tools version
+```
