@@ -87,6 +87,9 @@ function parseStackRestack(argv: string[]): StackRestackOpts {
       case "--continue":
         opts.continue = true;
         break;
+      case "--no-pull":
+        opts.noPull = true;
+        break;
       default:
         if (a.startsWith("-")) fail(`Unknown flag for stack restack: ${a}`);
         if (opts.branch) fail(`Unexpected extra argument for stack restack: ${a}`);

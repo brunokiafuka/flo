@@ -5,27 +5,36 @@ import {
   branchExists,
   currentBranch,
   git,
+  gitFetch,
   hasUncommittedChanges,
+  localBranches,
 } from "../git.js";
 import {
   buildForest,
+  clearParent,
   descendantsNeedingRestack,
   type Forest,
   getParentSha,
+  planPrune,
   readBranchInfo,
   readParents,
   readRecordedBases,
   restackScope,
+  setParent,
   setParentSha,
+  stackRootOf,
+  subtreeOf,
   tipsFrom,
+  topoOrder,
 } from "../stack.js";
-import { detectTrunk } from "../trunk.js";
+import { detectTrunk, findMergedBranches, ghMergedHeads } from "../trunk.js";
 import { colors, fail, info, success, warn } from "../ui.js";
 
 export type StackRestackOpts = {
   branch?: string;
   stack?: boolean; // -s/--stack: include descendants (the whole stack)
   continue?: boolean;
+  noPull?: boolean; // --no-pull: skip fetching + fast-forwarding trunk
 };
 
 /** One branch to replay onto its parent's (live) tip. */
@@ -38,6 +47,8 @@ type RestackState = {
   pending: Step[];
   /** The branch whose rebase conflicted; its base bookkeeping is finished on resume. */
   inflight: { branch: string; parentTip: string };
+  /** Merged branches to delete once the walk finishes (survives a conflict pause). */
+  deletable: string[];
 };
 
 // ─── small git helpers ───────────────────────────────────────────────────────
@@ -85,28 +96,72 @@ async function clearState(): Promise<void> {
   if (existsSync(p)) rmSync(p);
 }
 
+async function loadForest(): Promise<Forest> {
+  const [trunk, info, parents, recordedBases] = await Promise.all([
+    detectTrunk(),
+    readBranchInfo(),
+    readParents(),
+    readRecordedBases(),
+  ]);
+  return buildForest({ trunk, tips: tipsFrom(info), parents, recordedBases });
+}
+
+// ─── pull trunk (fetch + fast-forward) ───────────────────────────────────────
+
+/** Fetch origin and fast-forward local trunk (without a checkout when off-trunk). */
+async function pullTrunk(trunk: string, current: string): Promise<"updated" | "current" | "diverged" | "no-remote"> {
+  const hasOrigin = (await git(["remote", "get-url", "origin"], { allowFail: true })).exitCode === 0;
+  if (!hasOrigin) return "no-remote";
+
+  const fetched = await gitFetch(["origin", "--prune"]);
+  if (fetched.exitCode !== 0) fail(`Couldn't reach origin — ${fetched.stderr.trim()}`);
+
+  const local = await revParse(trunk);
+  const remote = (await git(["rev-parse", `origin/${trunk}`], { allowFail: true })).stdout.trim();
+  if (!remote || local === remote) return "current";
+  if (!(await isAncestor(trunk, `origin/${trunk}`))) return "diverged";
+
+  if (current === trunk) {
+    await git(["merge", "--ff-only", `origin/${trunk}`], { allowFail: true });
+  } else {
+    await git(["update-ref", `refs/heads/${trunk}`, `origin/${trunk}`]);
+  }
+  return "updated";
+}
+
+/** Union of git-based and GitHub-based merged detection, excluding trunk. */
+async function detectMerged(trunk: string): Promise<Set<string>> {
+  const [gitMerged, prMerged, locals] = await Promise.all([
+    findMergedBranches(trunk),
+    ghMergedHeads(),
+    localBranches(),
+  ]);
+  const localSet = new Set(locals);
+  const merged = new Set(gitMerged);
+  for (const head of prMerged) if (localSet.has(head) && head !== trunk) merged.add(head);
+  merged.delete(trunk);
+  return merged;
+}
+
 // ─── the walk ────────────────────────────────────────────────────────────────
 
-/**
- * Replay each step bottom-up. Returns on success; on the first conflict it
- * persists the remaining work, prints the resume hint, and exits the process.
- */
-async function runSteps(steps: Step[], target: string, includeDescendants: boolean): Promise<void> {
+async function runSteps(
+  steps: Step[],
+  target: string,
+  includeDescendants: boolean,
+  deletable: string[],
+): Promise<void> {
   for (let i = 0; i < steps.length; i++) {
     const { branch, parent } = steps[i];
     const parentTip = await revParse(parent);
     const recordedBase = await getParentSha(branch);
 
-    // Already sitting on the parent's current tip → nothing to replay.
     if (recordedBase === parentTip) continue;
     if (recordedBase == null && (await isAncestor(parentTip, branch))) {
-      // Unadopted branch already on top of its parent — adopt the base, no rebase.
       await setParentSha(branch, parentTip);
       continue;
     }
 
-    // `--onto <newTip> <oldBase>` replays only the branch's own commits. Without a
-    // recorded base, fall back to the 2-arg form (merge-base picks the old base).
     const args = recordedBase
       ? ["rebase", "--onto", parentTip, recordedBase, branch]
       : ["rebase", parentTip, branch];
@@ -119,6 +174,7 @@ async function runSteps(steps: Step[], target: string, includeDescendants: boole
         includeDescendants,
         pending: steps.slice(i + 1),
         inflight: { branch, parentTip },
+        deletable,
       });
       printConflict(branch, parent);
       process.exit(1);
@@ -127,8 +183,6 @@ async function runSteps(steps: Step[], target: string, includeDescendants: boole
     await setParentSha(branch, parentTip);
     console.log(`  ${colors.green("✓")} ${colors.bold(branch)} ${colors.dim("→")} ${parent}`);
   }
-
-  await finish(target, includeDescendants);
 }
 
 function printConflict(branch: string, parent: string): void {
@@ -136,51 +190,46 @@ function printConflict(branch: string, parent: string): void {
   console.error(`${colors.red().bold("✗")} Conflict restacking ${colors.bold(branch)} onto ${parent}.`);
   console.error("");
   console.error(`  ${colors.bold("1.")} Fix the files, then ${colors.cyan("git add <file>")}`);
-  console.error(`  ${colors.bold("2.")} ${colors.cyan("git rebase --continue")} ${colors.dim("(or git rebase --abort to bail)")}`);
+  console.error(
+    `  ${colors.bold("2.")} ${colors.cyan("git rebase --continue")} ${colors.dim("(or git rebase --abort to bail)")}`,
+  );
   console.error(`  ${colors.bold("3.")} ${colors.cyan("flo stack restack --continue")} to finish the rest of the stack`);
   console.error("");
 }
 
-/** Land back on the target, clear state, and flag any descendants left stale. */
-async function finish(target: string, includeDescendants: boolean): Promise<void> {
-  await git(["checkout", "--quiet", target], { allowFail: true });
+/** Land back on target, delete merged branches, clear state, flag any stragglers. */
+async function finalize(target: string, includeDescendants: boolean, deletable: string[]): Promise<void> {
+  if (await branchExists(target)) await git(["checkout", "--quiet", target], { allowFail: true });
   await clearState();
 
-  if (!includeDescendants) {
+  // Delete merged branches now — their tips were needed as rebase old-bases above.
+  const deleted: string[] = [];
+  for (const m of deletable) {
+    if (m === target) continue;
+    const del = await git(["branch", "-D", m], { allowFail: true });
+    if (del.exitCode === 0) {
+      await clearParent(m);
+      deleted.push(m);
+    }
+  }
+  if (deleted.length > 0) info(`Cleaned up merged: ${deleted.map((b) => colors.bold(b)).join(", ")}`);
+
+  if (!includeDescendants && (await branchExists(target))) {
     const forest = await loadForest();
     const stale = descendantsNeedingRestack(forest, target);
     if (stale.length > 0) {
       console.log("");
       warn(`Branches above ${colors.bold(target)} still need a restack: ${stale.map((b) => colors.bold(b)).join(", ")}`);
-      console.log(
-        colors.dim(`  Run ${colors.cyan("flo stack restack -s")} to include them, or restack from each one.`),
-      );
+      console.log(colors.dim(`  Run ${colors.cyan("flo stack restack -s")} to include them.`));
     }
   }
   success(`Stack restacked 👍`);
-}
-
-async function loadForest(): Promise<Forest> {
-  const [trunk, info, parents, recordedBases] = await Promise.all([
-    detectTrunk(),
-    readBranchInfo(),
-    readParents(),
-    readRecordedBases(),
-  ]);
-  return buildForest({ trunk, tips: tipsFrom(info), parents, recordedBases });
 }
 
 // ─── command ─────────────────────────────────────────────────────────────────
 
 export async function stackRestackCommand(opts: StackRestackOpts): Promise<void> {
   if (opts.continue) return resume();
-
-  const forest = await loadForest();
-  const current = await currentBranch();
-
-  const target = opts.branch ?? current;
-  if (opts.branch && !(await branchExists(opts.branch))) fail(`Can't find a branch called ${opts.branch}.`);
-  if (target === forest.trunk) fail(`You're on ${forest.trunk} — switch to a stacked branch first.`);
 
   if (await hasUncommittedChanges()) {
     fail("You have uncommitted changes — commit or stash them before restacking.");
@@ -189,16 +238,71 @@ export async function stackRestackCommand(opts: StackRestackOpts): Promise<void>
     fail("A rebase is already in progress. Finish it, then run flo stack restack --continue.");
   }
 
-  const scope = restackScope(forest, target, !!opts.stack);
-  if (scope.length === 0) fail(`Nothing to restack for ${target}.`);
+  const trunk = await detectTrunk();
+  let current = await currentBranch();
+  if (opts.branch && !(await branchExists(opts.branch))) fail(`Can't find a branch called ${opts.branch}.`);
+
+  // 1. Pull main: fetch + fast-forward trunk.
+  if (!opts.noPull) {
+    const r = await pullTrunk(trunk, current);
+    if (r === "diverged") warn(`Local ${trunk} has diverged from origin/${trunk} — restacking on local ${trunk}.`);
+    else if (r === "updated") info(`Pulled ${colors.bold(trunk)} from origin.`);
+    else if (r === "no-remote") info(colors.dim(`No origin remote — restacking on local ${trunk}.`));
+  }
+
+  // 2. Prune merged branches in the current stack: re-parent their children.
+  let forest = await loadForest();
+  const focus = opts.branch ?? current;
+  const root = stackRootOf(forest, focus) ?? focus;
+  const inStack = new Set(forest.nodes.get(focus) ? subtreeOf(forest, root) : []);
+  const detected = [...(await detectMerged(trunk))].filter((b) => inStack.has(b));
+
+  let deletable: string[] = [];
+  if (detected.length > 0) {
+    const plan = planPrune(forest, new Set(detected));
+    for (const op of plan.repoint) {
+      const base = (await getParentSha(op.branch)) ?? (await revParse(op.newParent));
+      await setParent(op.branch, op.newParent, base);
+    }
+    deletable = plan.deletable;
+    forest = await loadForest(); // re-read after re-parenting
+    info(
+      `Cleaning up ${detected.length} merged branch${detected.length === 1 ? "" : "es"}, re-parenting onto ${colors.bold(
+        trunk,
+      )}.`,
+    );
+  }
+  const mergedSet = new Set(deletable);
+
+  // Step off a branch that's about to be deleted.
+  current = await currentBranch();
+  if (mergedSet.has(current)) {
+    await git(["checkout", "--quiet", trunk], { allowFail: true });
+    current = trunk;
+  }
+
+  // 3. Resolve scope and restack. Pruning (or sitting on trunk) widens to the
+  //    whole forest so no re-parented orphan is left behind.
+  const target = opts.branch && !mergedSet.has(opts.branch) ? opts.branch : current;
+  const wide = mergedSet.size > 0 || target === trunk;
+  const scope = (wide ? topoOrder(forest) : restackScope(forest, target, !!opts.stack)).filter(
+    (b) => !mergedSet.has(b),
+  );
+  const fullyRestacked = wide || !!opts.stack;
+
+  if (scope.length === 0 && deletable.length === 0) {
+    success(`Nothing to restack — your stack is already on ${trunk}.`);
+    return;
+  }
 
   const steps: Step[] = scope.map((branch) => ({
     branch,
-    parent: forest.nodes.get(branch)?.parent ?? forest.trunk,
+    parent: forest.nodes.get(branch)?.parent ?? trunk,
   }));
 
-  info(`Restacking ${scope.length} branch${scope.length === 1 ? "" : "es"}…`);
-  await runSteps(steps, target, !!opts.stack);
+  if (steps.length > 0) info(`Restacking ${steps.length} branch${steps.length === 1 ? "" : "es"}…`);
+  await runSteps(steps, target, fullyRestacked, deletable);
+  await finalize(target, fullyRestacked, deletable);
 }
 
 async function resume(): Promise<void> {
@@ -212,9 +316,9 @@ async function resume(): Promise<void> {
     fail("You have uncommitted changes — commit or stash them before continuing the restack.");
   }
 
-  // The conflicted branch's rebase is done; record its new base, then carry on.
   await setParentSha(state.inflight.branch, state.inflight.parentTip);
   console.log(`  ${colors.green("✓")} ${colors.bold(state.inflight.branch)} ${colors.dim("(resolved)")}`);
 
-  await runSteps(state.pending, state.target, state.includeDescendants);
+  await runSteps(state.pending, state.target, state.includeDescendants, state.deletable);
+  await finalize(state.target, state.includeDescendants, state.deletable);
 }

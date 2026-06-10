@@ -53,11 +53,13 @@ Usage:
   flo stack nav <dir>    Move along the stack: up (toward the tip), down
                           (toward trunk), top (the tip), bottom (the branch
                           sitting on trunk).
-  flo stack restack       Rebase the ancestor path up to the current branch onto
-                          their parents (heals "needs restack"), and flag any
-                          branches above you left stale.
+  flo stack restack       Pull trunk, clean up merged branches (re-parenting the
+                          stack onto trunk), then rebase the path up to the
+                          current branch onto their parents. Flags any branches
+                          above you left stale.
     [branch]             restack the path up to <branch> instead of current
     -s, --stack          restack the whole stack (current's descendants too)
+    --no-pull            skip fetching / fast-forwarding trunk (local only)
     --continue           resume after resolving a conflict
   flo restack [branch]    Rebase the current (or named) branch onto trunk,
                           leaving conflicts open for you to resolve.
