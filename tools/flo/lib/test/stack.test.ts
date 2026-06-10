@@ -2,13 +2,16 @@ import { strict as assert } from "node:assert";
 import { describe, test } from "node:test";
 
 import {
+  ancestorPathTo,
   buildForest,
   currentStack,
+  descendantsNeedingRestack,
   type ForestInput,
   navBottom,
   navDown,
   navTop,
   navUp,
+  restackScope,
   stackRootOf,
   subtreeOf,
   topoOrder,
@@ -142,6 +145,55 @@ describe("stack resolution", () => {
       }),
     );
     assert.deepEqual(topoOrder(f), ["a", "b", "z"]);
+  });
+});
+
+describe("restack scope", () => {
+  test("ancestorPathTo is root→branch, inclusive", () => {
+    const f = buildForest(input(linear));
+    assert.deepEqual(ancestorPathTo(f, "wire_auth"), ["add_button", "login_form", "wire_auth"]);
+    assert.deepEqual(ancestorPathTo(f, "add_button"), ["add_button"]);
+    assert.deepEqual(ancestorPathTo(f, "main"), []);
+  });
+
+  test("default scope (path up to current) stops at the target, ignoring descendants", () => {
+    const f = buildForest(
+      input({
+        branches: {
+          a: { parent: "main", sha: "a1" },
+          b: { parent: "a", sha: "b1" },
+          c: { parent: "b", sha: "c1" }, // descendant above b
+        },
+      }),
+    );
+    assert.deepEqual(restackScope(f, "b", false), ["a", "b"]);
+  });
+
+  test("--stack scope is the whole root subtree, including forks", () => {
+    const f = buildForest(
+      input({
+        branches: {
+          a: { parent: "main", sha: "a1" },
+          b: { parent: "a", sha: "b1" },
+          c: { parent: "a", sha: "c1" },
+        },
+      }),
+    );
+    assert.deepEqual(restackScope(f, "b", true).sort(), ["a", "b", "c"]);
+  });
+
+  test("descendantsNeedingRestack flags only stale branches above the target", () => {
+    const f = buildForest(
+      input({
+        branches: {
+          a: { parent: "main", sha: "a2", base: "trunk0" },
+          b: { parent: "a", sha: "b1", base: "a1" }, // a moved a1→a2 → stale
+          c: { parent: "b", sha: "c1", base: "b1" }, // in sync with b
+        },
+      }),
+    );
+    assert.deepEqual(descendantsNeedingRestack(f, "a"), ["b"]);
+    assert.deepEqual(descendantsNeedingRestack(f, "b"), []);
   });
 });
 

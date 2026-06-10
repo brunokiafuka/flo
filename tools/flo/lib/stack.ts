@@ -238,6 +238,45 @@ export function topoOrder(forest: Forest): string[] {
   return forest.roots.flatMap((root) => subtreeOf(forest, root));
 }
 
+/**
+ * The ancestor path from the stack root down to `branch`, inclusive
+ * (root → … → branch). Linear by construction — each branch has one parent.
+ * Empty for trunk / unknown branches.
+ */
+export function ancestorPathTo(forest: Forest, branch: string): string[] {
+  const node = forest.nodes.get(branch);
+  if (!node || node.isTrunk) return [];
+  const path: string[] = [];
+  const seen = new Set<string>();
+  let cur: StackNode | undefined = node;
+  while (cur && !cur.isTrunk) {
+    if (seen.has(cur.branch)) break; // cycle guard
+    seen.add(cur.branch);
+    path.push(cur.branch);
+    cur = cur.parent ? forest.nodes.get(cur.parent) : undefined;
+  }
+  return path.reverse();
+}
+
+/**
+ * Branches a restack should walk, in topological order (parents first):
+ *  - default: the ancestor path up to `branch` (heal *me* and everything below)
+ *  - `includeDescendants`: the whole stack-root subtree (the design's "the stack")
+ */
+export function restackScope(forest: Forest, branch: string, includeDescendants: boolean): string[] {
+  if (!includeDescendants) return ancestorPathTo(forest, branch);
+  const root = stackRootOf(forest, branch);
+  return root ? subtreeOf(forest, root) : [];
+}
+
+/**
+ * Descendants of `branch` that are stale — used after a path-restack to flag the
+ * branches above the target that the restack deliberately left untouched.
+ */
+export function descendantsNeedingRestack(forest: Forest, branch: string): string[] {
+  return subtreeOf(forest, branch).filter((b) => b !== branch && forest.nodes.get(b)?.needsRestack);
+}
+
 // ─── Navigation — pure resolvers; the command layer does the actual checkout ──
 
 export type NavResult = { target: string } | { error: string };
