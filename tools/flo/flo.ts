@@ -18,6 +18,7 @@ import {
   type SetupOpts,
   stackCommand,
   submitCommand,
+  type SubmitOpts,
   syncCommand,
 } from "./lib/commands/index.js";
 import { configLabel, loadConfig } from "./lib/config.js";
@@ -79,9 +80,15 @@ Usage:
                           instead of overwriting the whole config.
   flo push                Push current branch with --force-with-lease
                           (sets upstream on first push).
-  flo submit              Push and open/update the PR for the current branch.
-                          Opens a new PR (draft or ready-for-review per your
-                          flo setup) when none exists yet.
+  flo submit              Push and open/update PRs for the current branch and
+                          its ancestors (stack-aware: each PR's base is its
+                          parent branch). On a stack it refreshes a sticky
+                          "stack" comment on each PR. A plain branch on trunk
+                          behaves like a normal single-PR submit.
+    --all-stack          extend to the whole stack (descendants too), not just
+                          the path up to the current branch
+    --dry-run            print the plan (push set, PR actions, comment) without
+                          touching GitHub
   flo run <name> [args]   Run a project command defined in flo.yml at the repo
                           root. Output is boxed with a status footer. You can
                           also invoke recipes directly: "flo test" is short for
@@ -126,6 +133,23 @@ function parseCommit(argv: string[]): CommitOpts {
         break;
       default:
         fail(`Unknown flag for commit: ${a}`);
+    }
+  }
+  return opts;
+}
+
+function parseSubmit(argv: string[]): SubmitOpts {
+  const opts: SubmitOpts = {};
+  for (const a of argv) {
+    switch (a) {
+      case "--all-stack":
+        opts.allStack = true;
+        break;
+      case "--dry-run":
+        opts.dryRun = true;
+        break;
+      default:
+        fail(`Unknown flag for submit: ${a}`);
     }
   }
   return opts;
@@ -281,7 +305,7 @@ async function main() {
       await setupCommand(parseSetup(rest));
       break;
     case "submit":
-      await submitCommand();
+      await submitCommand(parseSubmit(rest));
       break;
     case "run":
       await runCommand(rest[0], rest.slice(1));
