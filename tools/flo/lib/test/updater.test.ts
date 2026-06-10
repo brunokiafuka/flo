@@ -61,11 +61,6 @@ describe("isFresh", () => {
 });
 
 describe("detectInstallSource", () => {
-  test("recognizes Homebrew cellar paths", () => {
-    assert.equal(detectInstallSource("/opt/homebrew/Cellar/flo/0.2.0/tools/flo"), "brew");
-    assert.equal(detectInstallSource("/usr/local/Cellar/flo/0.1.0/tools/flo"), "brew");
-  });
-
   test("recognizes npm install paths", () => {
     assert.equal(detectInstallSource("/usr/local/lib/node_modules/flo-tools/dist"), "npm");
     assert.equal(detectInstallSource("/Users/bk/project/node_modules/flo-tools/dist/lib"), "npm");
@@ -84,10 +79,6 @@ describe("detectInstallSource", () => {
 describe("updateHint", () => {
   test("npm source suggests a global reinstall", () => {
     assert.equal(updateHint("npm"), "npm i -g flo-tools");
-  });
-
-  test("brew source suggests brew upgrade", () => {
-    assert.equal(updateHint("brew"), "brew upgrade flo");
   });
 
   test("git source suggests a pull + reinstall, with cd when repo root is known", () => {

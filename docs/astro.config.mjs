@@ -26,6 +26,10 @@ export default defineConfig({
           ],
         },
         {
+          label: "Guides",
+          items: [{ label: "Stacked branches", slug: "guides/stacking" }],
+        },
+        {
           label: "Reference",
           items: [
             { label: "Commands", slug: "reference/commands" },

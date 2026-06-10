@@ -12,11 +12,16 @@
 ## Install
 
 ```bash
-brew tap brunokiafuka/flo https://github.com/brunokiafuka/flo
-brew install --HEAD flo
+npm install -g flo-tools     # then run `flo`
 ```
 
-For versioned installs and the release flow, see the [contributing guide](https://brunokiafuka.github.io/flo/contributing/guide/).
+Or run it on demand, no install:
+
+```bash
+npx flo-tools --help
+```
+
+The package is [`flo-tools`](https://www.npmjs.com/package/flo-tools) (source under [`tools/flo`](https://github.com/brunokiafuka/flo/tree/main/tools/flo)); its binary is `flo`. For the release flow, see the [contributing guide](https://brunokiafuka.github.io/flo/contributing/guide/).
 
 ## Quickstart
 
@@ -54,8 +59,6 @@ pnpm run install:flo    # symlinks ~/.local/bin/flo
 ├── tools/
 │   └── flo/         # the tool — self-contained, owns its deps
 ├── docs/            # Starlight site (deploys to GitHub Pages)
-├── Formula/
-│   └── flo.rb       # Homebrew formula
 └── package.json     # pnpm workspace root (tools/*, docs)
 ```
 

@@ -5,5 +5,5 @@
   "semi": true,
   "sortImports": true,
   "arrowParens": "always",
-  "ignorePatterns": ["**/*.md", "Formula/**"]
+  "ignorePatterns": ["**/*.md"]
 }

@@ -17,7 +17,7 @@ export type UpdateCache = {
   latestVersion: string;
 };
 
-export type InstallSource = "npm" | "brew" | "git" | "unknown";
+export type InstallSource = "npm" | "git" | "unknown";
 
 export type UpdateStatus = {
   currentVersion: string;
@@ -79,12 +79,10 @@ export function compareVersions(a: string, b: string): number {
 
 /**
  * Detect how flo is installed from the absolute path to its module directory.
- * npm installs (global or local) live under a node_modules/ path; Homebrew
- * installs live under .../Cellar/flo/...; everything else is treated as a
- * direct checkout.
+ * npm installs (global or local) live under a node_modules/ path; everything
+ * else is treated as a direct checkout.
  */
 export function detectInstallSource(modulePath: string): InstallSource {
-  if (/\/Cellar\/flo(-tools)?\//.test(modulePath)) return "brew";
   if (/[/\\]node_modules[/\\]/.test(modulePath)) return "npm";
   if (modulePath && modulePath.length > 0) return "git";
   return "unknown";
@@ -93,7 +91,6 @@ export function detectInstallSource(modulePath: string): InstallSource {
 /** Human-readable command for refreshing flo. */
 export function updateHint(source: InstallSource, repoRoot?: string): string {
   if (source === "npm") return "npm i -g flo-tools";
-  if (source === "brew") return "brew upgrade flo";
   if (source === "git") {
     const where = repoRoot ? `cd ${repoRoot} && ` : "";
     return `${where}git pull && ./tools/flo/install`;

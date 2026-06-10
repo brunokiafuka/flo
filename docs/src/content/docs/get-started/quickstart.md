@@ -5,20 +5,25 @@ description: Install flo, configure your defaults, and ship your first PR.
 
 ## Install
 
-`flo` ships as a Homebrew formula. Pick HEAD for the tip of `main`, or a tagged release if one's been cut.
+`flo` ships on npm as [`flo-tools`](https://www.npmjs.com/package/flo-tools) (its binary is `flo`). Install it globally:
 
 ```bash
-brew tap brunokiafuka/flo https://github.com/brunokiafuka/flo
-brew install --HEAD flo
+npm install -g flo-tools
+```
+
+Or run it on demand without installing:
+
+```bash
+npx flo-tools --help
 ```
 
 Upgrade later with:
 
 ```bash
-brew upgrade --fetch-HEAD flo
+npm install -g flo-tools@latest
 ```
 
-For the full install matrix (HEAD vs. tagged, version pinning) and the release flow, see the **[Contributing guide](../contributing/guide.md)**.
+The source lives under [`tools/flo`](https://github.com/brunokiafuka/flo/tree/main/tools/flo). For the release flow, see the **[Contributing guide](../contributing/guide.md)**.
 
 ## First-run setup
 
