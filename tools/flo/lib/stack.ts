@@ -277,6 +277,40 @@ export function descendantsNeedingRestack(forest: Forest, branch: string): strin
   return subtreeOf(forest, branch).filter((b) => b !== branch && forest.nodes.get(b)?.needsRestack);
 }
 
+/** Walk up from `branch` past any merged ancestors to the first live parent (or trunk). */
+function nearestLiveAncestor(forest: Forest, branch: string, merged: Set<string>): string {
+  let p = forest.nodes.get(branch)?.parent ?? forest.trunk;
+  const seen = new Set<string>();
+  while (p !== forest.trunk && merged.has(p) && !seen.has(p)) {
+    seen.add(p);
+    p = forest.nodes.get(p)?.parent ?? forest.trunk;
+  }
+  return p;
+}
+
+export type RepointOp = { branch: string; newParent: string };
+
+/**
+ * Plan the cleanup when branches have merged: each merged branch is deletable,
+ * and its still-live children re-parent onto the nearest non-merged ancestor
+ * (trunk, for a merged stack root). Children keep their recorded base so the
+ * follow-up restack replays only their own commits. Pure.
+ */
+export function planPrune(forest: Forest, merged: Set<string>): { repoint: RepointOp[]; deletable: string[] } {
+  const repoint: RepointOp[] = [];
+  const deletable: string[] = [];
+  for (const m of merged) {
+    const node = forest.nodes.get(m);
+    if (!node || node.isTrunk) continue;
+    deletable.push(m);
+    for (const child of node.children) {
+      if (merged.has(child)) continue; // it's deletable too; its own children get repointed
+      repoint.push({ branch: child, newParent: nearestLiveAncestor(forest, child, merged) });
+    }
+  }
+  return { repoint, deletable: deletable.sort() };
+}
+
 // ─── Navigation — pure resolvers; the command layer does the actual checkout ──
 
 export type NavResult = { target: string } | { error: string };

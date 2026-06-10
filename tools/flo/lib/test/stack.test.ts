@@ -11,6 +11,7 @@ import {
   navDown,
   navTop,
   navUp,
+  planPrune,
   restackScope,
   stackRootOf,
   subtreeOf,
@@ -194,6 +195,34 @@ describe("restack scope", () => {
     );
     assert.deepEqual(descendantsNeedingRestack(f, "a"), ["b"]);
     assert.deepEqual(descendantsNeedingRestack(f, "b"), []);
+  });
+});
+
+describe("planPrune (merged cleanup)", () => {
+  test("merged stack root → children re-parent onto trunk, root deletable", () => {
+    const f = buildForest(input(linear)); // main → add_button → login_form → wire_auth
+    const { repoint, deletable } = planPrune(f, new Set(["add_button"]));
+    assert.deepEqual(deletable, ["add_button"]);
+    assert.deepEqual(repoint, [{ branch: "login_form", newParent: "main" }]);
+  });
+
+  test("a merged mid branch → its child re-parents onto the grandparent", () => {
+    const f = buildForest(input(linear));
+    const { repoint } = planPrune(f, new Set(["login_form"]));
+    assert.deepEqual(repoint, [{ branch: "wire_auth", newParent: "add_button" }]);
+  });
+
+  test("a chain of merged branches → child skips past all of them to trunk", () => {
+    const f = buildForest(input(linear));
+    const { repoint, deletable } = planPrune(f, new Set(["add_button", "login_form"]));
+    assert.deepEqual(deletable, ["add_button", "login_form"]);
+    // wire_auth's parent (login_form) and grandparent (add_button) are both merged → trunk
+    assert.deepEqual(repoint, [{ branch: "wire_auth", newParent: "main" }]);
+  });
+
+  test("nothing merged → no-op", () => {
+    const f = buildForest(input(linear));
+    assert.deepEqual(planPrune(f, new Set()), { repoint: [], deletable: [] });
   });
 });
 
