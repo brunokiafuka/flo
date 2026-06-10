@@ -30,9 +30,11 @@ const HELP = `
 flo — your local git workflow helper
 
 Usage:
-  flo sync                Fetch origin, fast-forward trunk, prompt to delete
-                          merged branches, then rebase every local branch
-                          onto trunk. Aborts on conflict and suggests flo restack.
+  flo sync                Sync the whole forest: pull trunk, clean up merged
+                          branches (re-parenting their children onto trunk),
+                          then rebase every stack onto its parents. Branches
+                          that conflict are rolled back and listed at the end
+                          to fix by hand with flo stack restack.
   flo get [target]        Fetch and check out a branch, rebasing only that
                           one branch. Defaults to the current branch.
                           <target> can be:
