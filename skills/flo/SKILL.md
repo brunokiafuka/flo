@@ -21,6 +21,19 @@ Map the user's intent to one command (full table in supporting-info). The common
 
 Pass a `-m` message yourself when you already know it; only let flo prompt interactively when you genuinely need the user to decide. Never invent a flag — if an intent has no flo command, use git and say why.
 
+When unsure of a command or flag, run **`flo --help`** (alias `flo help`) and read the current surface rather than trusting memory — it is the authoritative reference and flo evolves. There is no per-subcommand help: `flo commit --help` and the like error out, so always use the global help.
+
+**On a pre-existing stack, orient before you mutate.** Whenever you're about to build on, rebase, or land work that's already part of a stack, first run `flo stack` to read the forest — whether the current branch belongs to a stack, where it sits, and which branches are flagged "needs restack." This step is required when working on an existing stack, not optional: you can't pick the right restack without seeing the layout. Then ask the user whether to bring things up to date before continuing, and offer the scope (rebasing rewrites history, so never do it unprompted):
+
+- `flo restack` — just the current branch onto trunk
+- `flo stack restack` — the path from trunk up to the current branch
+- `flo stack restack -s` — the whole stack (current's descendants too)
+- `flo sync` — a full refresh of the entire forest (pull trunk, prune merged branches, restack everything)
+
+**Close the loop — but only with permission.** After an action that leaves unpushed commits or new stacked branches (commit, stack create, restack), don't stop silently: ask the user whether to submit. If they say yes, run `flo submit` (stack-aware — pushes and opens/updates a PR per branch, each based on its parent). Pushing is outward-facing, so never submit unprompted. Then, once the PRs exist, offer to write their descriptions — see the PR-descriptions note in supporting-info.
+
+**Ask with a real prompt, not buried prose.** For every one of these decisions — restack now? which scope? submit? write PR descriptions? — use your agent platform's structured question / choice UI (a multiple-choice prompt) if it has one, so the options are explicit and the answer is one click. Fall back to a plain written question only when no such UI is available.
+
 Read-only inspection (`git status`, `git log`, `git show`) stays plain git — flo is for the mutating workflow, not for replacing every git call.
 
 </what-to-do>
@@ -59,9 +72,31 @@ This is why command choice matters:
 - Rebase with `flo restack` / `flo stack restack`, not `git rebase` — flo re-parents merged branches onto trunk and updates recorded bases; a manual rebase leaves the metadata stale.
 - Open PRs with `flo submit`, not `gh pr create` — flo sets each PR's base to its parent branch and maintains a sticky "stack" comment across the PRs.
 
+## Working on a pre-existing stack
+
+Run `flo stack` first — it tells you what you're standing in and what's stale:
+
+- **"needs restack" on the current branch** (its recorded base drifted from its parent's tip) → `flo stack restack` brings the path up to it back in line.
+- **"needs restack" above you too** (descendants are stale) → `flo stack restack -s` to fix the whole stack in one go.
+- **Trunk has moved / merged branches need cleaning across the forest** → `flo sync` (pull trunk, prune merged + re-parent their children, restack everything). This is the "refresh everything" option to offer when more than the current stack is out of date.
+- **A lone branch off trunk, just behind** → `flo restack`.
+
+Surface what `flo stack` shows (which branches are flagged, how far behind) when you ask, so the user is choosing the scope with the same picture you have.
+
 ## Conflict handling
 
 `flo restack`, `flo stack restack`, and `flo sync` leave merge conflicts open in the working tree for the user to resolve by hand — they do not auto-resolve or abort silently. After the user fixes the conflict, resume with `flo stack restack --continue` (for a stack restack). `flo sync` rolls back any branch it couldn't rebase cleanly and lists them at the end to fix individually with `flo stack restack`. When you hit a conflict, surface the conflicted files and hand control back to the user rather than guessing a resolution.
+
+## PR descriptions
+
+`flo submit` fills each PR's title and body automatically — from the branch's commit (`gh pr create --fill`) or, if the repo has a PR template, from that template. It does **not** take a description you pass in. So after submitting, offer to write a real description per PR:
+
+- Draft a clear **title** and **body**: what changed and why. Keep it about *this* branch's change.
+- **Don't add a "Stack" section or list the sibling PRs in the body.** `flo submit` already maintains a sticky stack comment on every PR that renders the full stack — duplicating it in the description is noise that goes stale on the next restack. Let the comment own stack context.
+- Apply it with `gh pr edit <branch> --title "…" --body-file <file>` (write the markdown to a temp file and pass `--body-file` to avoid shell-escaping long bodies). flo selects PRs by branch name, so a branch is a valid target.
+- This is the one place `gh` is the right tool over flo: flo owns the PR's **base** and the sticky **stack comment**, but the description body is yours to fill. Don't change the base with `gh` — let `flo submit` manage it.
+
+Do this only after the user agreed to submit, and confirm before posting — a PR body is published content.
 
 ## Guardrails
 
