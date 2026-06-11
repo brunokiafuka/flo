@@ -4,45 +4,36 @@ import lucode from "lucode-starlight";
 
 export default defineConfig({
   site: "https://brunokiafuka.github.io",
-  base: "/flo",
+  base: "/toolkit",
   integrations: [
     starlight({
-      title: "🌊 flo",
+      title: "🧰 toolkit",
       description:
-        "Your local flow orchestrator — git, PRs, and project recipes in one tool.",
+        "A toolkit of local dev tools to help you work productively.",
       social: [
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/brunokiafuka/flo",
+          href: "https://github.com/brunokiafuka/toolkit",
         },
       ],
       sidebar: [
         {
-          label: "Get started",
+          label: "flo",
           items: [
-            { label: "What's flo?", slug: "" },
+            { label: "What's flo?", slug: "flo" },
             { label: "Quickstart", slug: "get-started/quickstart" },
-          ],
-        },
-        {
-          label: "Guides",
-          items: [{ label: "Stacked branches", slug: "guides/stacking" }],
-        },
-        {
-          label: "Reference",
-          items: [
+            { label: "Skills", slug: "get-started/skill" },
+            { label: "Stacked branches", slug: "guides/stacking" },
             { label: "Commands", slug: "reference/commands" },
             { label: "Configuration", slug: "reference/configuration" },
             { label: "Recipes", slug: "reference/recipes" },
+            { label: "Contributing", slug: "contributing/guide" },
           ],
         },
-        {
-          label: "Contributing",
-          items: [{ label: "Guide", slug: "contributing/guide" }],
-        },
       ],
-      plugins: [lucode()],
+      customCss: ["./src/styles/landing.css"],
+      plugins: [lucode({ footerText: "" })],
     }),
   ],
 });
