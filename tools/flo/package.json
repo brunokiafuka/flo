@@ -20,13 +20,13 @@
     "trunk-based",
     "developer-tools"
   ],
-  "homepage": "https://github.com/brunokiafuka/flo/tree/main/tools/flo",
+  "homepage": "https://github.com/brunokiafuka/toolkit/tree/main/tools/flo",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brunokiafuka/workflow.git"
+    "url": "git+https://github.com/brunokiafuka/toolkit.git"
   },
   "bugs": {
-    "url": "https://github.com/brunokiafuka/flo/issues"
+    "url": "https://github.com/brunokiafuka/toolkit/issues"
   },
   "license": "MIT",
   "scripts": {
