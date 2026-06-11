@@ -19,7 +19,7 @@ description: Every flo command, its flags, and behavior notes.
 - [`flo run`](#flo-run-name-args) — run a project command defined in `flo.yml`
 - [`flo init`](#flo-init) — run the bootstrap steps in `flo.yml`
 
-> New to stacked branches? Start with the **[Stacked branches guide](../guides/stacking.md)** — it explains the model and walks the lifecycle visually. This page is the flag-by-flag reference.
+> New to stacked branches? Start with the **[Stacked branches guide](./stacking.md)** — it explains the model and walks the lifecycle visually. This page is the flag-by-flag reference.
 
 ---
 
@@ -121,7 +121,7 @@ Any command other than `setup` / `help` checks for a loadable config before runn
 
 ## `flo sync`
 
-Syncs the **whole forest**: pulls trunk, cleans up merged branches, and rebases every stack onto its parents. It's `flo stack restack` applied across all your stacks at once — the command to run after a round of PRs lands. For the conceptual walkthrough, see the [Stacked branches guide](../guides/stacking.md#syncing-everything--flo-sync).
+Syncs the **whole forest**: pulls trunk, cleans up merged branches, and rebases every stack onto its parents. It's `flo stack restack` applied across all your stacks at once — the command to run after a round of PRs lands. For the conceptual walkthrough, see the [Stacked branches guide](./stacking.md#syncing-everything--flo-sync).
 
 **What it does**
 
@@ -146,7 +146,7 @@ Syncs the **whole forest**: pulls trunk, cleans up merged branches, and rebases 
 
 ## `flo stack`
 
-Everything for **stacked branches** — chains of dependent branches where each branch is its own PR based on the one below it. See the [Stacked branches guide](../guides/stacking.md) for the model and a visual walkthrough; this section is the flag reference. Bare `flo stack` runs the `view` subcommand.
+Everything for **stacked branches** — chains of dependent branches where each branch is its own PR based on the one below it. See the [Stacked branches guide](./stacking.md) for the model and a visual walkthrough; this section is the flag reference. Bare `flo stack` runs the `view` subcommand.
 
 flo tracks one fact per branch — its **parent** — in git config (`branch.<name>.flo-parent`), plus the parent's tip when the branch was last branched or restacked (`flo-parent-sha`, the **recorded base**). A branch with no parent is treated as a root on trunk. Nothing here touches your repo's working tree config; it's all per-repo state under git config.
 
@@ -317,7 +317,7 @@ Detects a stale upstream and tells you to `flo sync` rather than spewing git's n
 
 ## `flo submit`
 
-Pushes and opens (or updates) PRs. Requires the [`gh`](https://cli.github.com/) CLI. **Stack-aware automatically** — there's no flag to flip. On a plain branch it opens one PR against trunk; on a stacked branch it pushes the ancestor chain bottom-up and opens **one PR per branch, each based on its parent**. flo reads the parent pointers to tell which case you're in. See the [Stacked branches guide](../guides/stacking.md#reviewing-a-stack--flo-submit) for the walkthrough.
+Pushes and opens (or updates) PRs. Requires the [`gh`](https://cli.github.com/) CLI. **Stack-aware automatically** — there's no flag to flip. On a plain branch it opens one PR against trunk; on a stacked branch it pushes the ancestor chain bottom-up and opens **one PR per branch, each based on its parent**. flo reads the parent pointers to tell which case you're in. See the [Stacked branches guide](./stacking.md#reviewing-a-stack--flo-submit) for the walkthrough.
 
 **Submit set**
 
