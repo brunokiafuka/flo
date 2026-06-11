@@ -21,7 +21,7 @@ Or run it on demand, no install:
 npx flo-tools --help
 ```
 
-The package is [`flo-tools`](https://www.npmjs.com/package/flo-tools) (source under [`tools/flo`](https://github.com/brunokiafuka/flo/tree/main/tools/flo)); its binary is `flo`. For the release flow, see the [contributing guide](https://brunokiafuka.github.io/flo/contributing/guide/).
+The package is [`flo-tools`](https://www.npmjs.com/package/flo-tools) (source under [`tools/flo`](https://github.com/brunokiafuka/toolkit/tree/main/tools/flo)); its binary is `flo`. For the release flow, see the [contributing guide](https://brunokiafuka.github.io/toolkit/contributing/guide/).
 
 ## Quickstart
 
@@ -37,13 +37,13 @@ flo <recipe>            # run a project command defined in flo.yml
 
 ## Docs
 
-Live at **<https://brunokiafuka.github.io/flo/>** (built with [Starlight](https://starlight.astro.build/), source under [`docs/`](docs/)).
+Live at **<https://brunokiafuka.github.io/toolkit/>** (built with [Starlight](https://starlight.astro.build/), source under [`docs/`](docs/)).
 
-- **[Quickstart](https://brunokiafuka.github.io/flo/get-started/quickstart/)** — install, first-run setup, a typical loop
-- **[Command reference](https://brunokiafuka.github.io/flo/reference/commands/)** — every command, flags, and behavior notes
-- **[Configuration](https://brunokiafuka.github.io/flo/reference/configuration/)** — `flo.yml` schema: commands, init steps, validation
-- **[Recipes](https://brunokiafuka.github.io/flo/reference/recipes/)** — ready-made `flo.yml` patterns
-- **[Contributing guide](https://brunokiafuka.github.io/flo/contributing/guide/)** — local dev, tests, release flow
+- **[Quickstart](https://brunokiafuka.github.io/toolkit/get-started/quickstart/)** — install, first-run setup, a typical loop
+- **[Command reference](https://brunokiafuka.github.io/toolkit/reference/commands/)** — every command, flags, and behavior notes
+- **[Configuration](https://brunokiafuka.github.io/toolkit/reference/configuration/)** — `flo.yml` schema: commands, init steps, validation
+- **[Recipes](https://brunokiafuka.github.io/toolkit/reference/recipes/)** — ready-made `flo.yml` patterns
+- **[Contributing guide](https://brunokiafuka.github.io/toolkit/contributing/guide/)** — local dev, tests, release flow
 
 ## Local dev
 
