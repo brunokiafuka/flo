@@ -23,7 +23,7 @@ Upgrade later with:
 npm install -g flo-tools@latest
 ```
 
-The source lives under [`tools/flo`](https://github.com/brunokiafuka/flo/tree/main/tools/flo). For the release flow, see the **[Contributing guide](../contributing/guide.md)**.
+The source lives under [`tools/flo`](https://github.com/brunokiafuka/flo/tree/main/tools/flo). For the release flow, see the **[Contributing guide](./contributing.md)**.
 
 ## First-run setup
 
@@ -70,10 +70,10 @@ flo test          # → pnpm --filter flo test
 flo t -- --watch  # extra args appended with shell-safe quoting
 ```
 
-For the full `flo.yml` schema, see **[Configuration](../reference/configuration.md)**.
+For the full `flo.yml` schema, see **[Configuration](./configuration.md)**.
 
 ## Where to next
 
-- The full **[Command reference](../reference/commands.md)** with every flag.
-- Common **[Recipes](../reference/recipes.md)** for `flo.yml`.
-- The **[Contributing guide](../contributing/guide.md)** if you want to hack on flo itself.
+- The full **[Command reference](./commands.md)** with every flag.
+- Common **[Recipes](./recipes.md)** for `flo.yml`.
+- The **[Contributing guide](./contributing.md)** if you want to hack on flo itself.

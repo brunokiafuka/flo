@@ -21,8 +21,8 @@ Solo devs and small teams who like git's model but find its surface area punishi
 
 ## Where to next
 
-- New here? Walk through the **[Quickstart](./get-started/quickstart.md)**.
-- Using a coding agent? Install the **[flo skill](./get-started/skill.md)** and drive your workflow with `/flo`.
-- Looking up a specific command? See **[Reference → Commands](./reference/commands.md)**.
-- Setting up per-project recipes? See **[Reference → Configuration](./reference/configuration.md)** and **[Recipes](./reference/recipes.md)**.
-- Hacking on flo itself? See the **[Contributing guide](./contributing/guide.md)**.
+- New here? Walk through the **[Quickstart](./quickstart.md)**.
+- Using a coding agent? Install the **[flo skill](./skills.md)** and drive your workflow with `/flo`.
+- Looking up a specific command? See **[Reference → Commands](./commands.md)**.
+- Setting up per-project recipes? See **[Reference → Configuration](./configuration.md)** and **[Recipes](./recipes.md)**.
+- Hacking on flo itself? See the **[Contributing guide](./contributing.md)**.

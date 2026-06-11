@@ -241,4 +241,4 @@ You're left back on the branch you started from, with a clean tree, and a short 
 | `flo sync` | the same across the **whole forest**; conflicts reported, not paused |
 | `flo submit` | one PR per branch, base = parent, plus a stack comment (`--all-stack`, `--dry-run`) |
 
-See the [Commands reference](../reference/commands.md) for every flag and the exact behavior of each.
+See the [Commands reference](./commands.md) for every flag and the exact behavior of each.
