@@ -1,0 +1,36 @@
+---
+title: toolkit
+description: A toolkit of local dev tools to help you work productively.
+template: splash
+hero:
+  tagline: A toolkit of local dev tools to help you work productively.
+  actions:
+    - text: Explore flo
+      link: /toolkit/flo/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/brunokiafuka/toolkit
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<div class="tools">
+
+## Tools
+
+<CardGrid>
+  <LinkCard
+    title="flo"
+    href="/toolkit/flo/"
+    description="Your local flow orchestrator — git, PRs, and project recipes in one tool. Stack branches, commit, restack, and open PRs without fighting git."
+  />
+  <LinkCard
+    title="＋ new to come"
+    href="https://github.com/brunokiafuka/toolkit/issues"
+    description="Thinking on what to build next. Got an itch worth scratching? Start a discussion."
+  />
+</CardGrid>
+
+</div>

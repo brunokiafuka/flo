@@ -3,7 +3,7 @@ title: What's flo?
 description: A local flow orchestrator — git, PRs, and project recipes in one tool.
 ---
 
-`flo` is your local flow orchestrator. It wraps the handful of git invocations you'd otherwise type a hundred times a day, with safer defaults and friendlier output.
+`flo` is the first tool in [toolkit](/toolkit/). It's your local flow orchestrator — it wraps the handful of git invocations you'd otherwise type a hundred times a day, with safer defaults and friendlier output.
 
 ## What it does
 
@@ -22,6 +22,7 @@ Solo devs and small teams who like git's model but find its surface area punishi
 ## Where to next
 
 - New here? Walk through the **[Quickstart](./get-started/quickstart.md)**.
+- Using a coding agent? Install the **[flo skill](./get-started/skill.md)** and drive your workflow with `/flo`.
 - Looking up a specific command? See **[Reference → Commands](./reference/commands.md)**.
 - Setting up per-project recipes? See **[Reference → Configuration](./reference/configuration.md)** and **[Recipes](./reference/recipes.md)**.
 - Hacking on flo itself? See the **[Contributing guide](./contributing/guide.md)**.
