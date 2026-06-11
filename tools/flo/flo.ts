@@ -24,7 +24,7 @@ import {
 import { configLabel, loadConfig } from "./lib/config.js";
 import { listRecipeNames, loadRecipes, resolveRecipe } from "./lib/recipes.js";
 import { c, fail } from "./lib/ui.js";
-import { maybeNotifyUpdate } from "./lib/updater.js";
+import { maybeNotifyUpdate, readCurrentVersion } from "./lib/updater.js";
 
 const HELP = `
 flo — your local git workflow helper
@@ -100,6 +100,7 @@ Usage:
   flo init                Run the init: steps in flo.yml in order (install deps,
                           run migrations, seed data, etc). Stops on first
                           failure. Safe to re-run — make your steps idempotent.
+  flo version             Print flo's installed version (also --version, -v).
   flo --help              Show this message.
 `;
 
@@ -218,6 +219,11 @@ async function main() {
 
   if (!cmd || cmd === "--help" || cmd === "-h" || cmd === "help") {
     console.log(HELP);
+    return;
+  }
+
+  if (cmd === "version" || cmd === "--version" || cmd === "-v") {
+    console.log(`flo ${await readCurrentVersion()}`);
     return;
   }
 

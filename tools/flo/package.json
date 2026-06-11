@@ -1,6 +1,6 @@
 {
   "name": "flo-tools",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Your local flow orchestrator — git, PRs, and project recipes.",
   "type": "module",
   "bin": {
@@ -30,7 +30,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc && chmod +x dist/flo.js",
+    "build": "rm -rf dist && tsc && chmod +x dist/flo.js",
     "dev": "tsx flo.ts",
     "test": "tsx --test lib/**/*.test.ts",
     "prepublishOnly": "npm run build"
