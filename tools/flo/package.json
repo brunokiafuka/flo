@@ -1,6 +1,6 @@
 {
   "name": "flo-tools",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Your local flow orchestrator — git, PRs, and project recipes.",
   "type": "module",
   "bin": {
