@@ -103,7 +103,7 @@ export function updateHint(source: InstallSource, repoRoot?: string): string {
  * Walks up from the module dir so it works whether running from compiled
  * `dist/lib/` or directly from `lib/` via tsx.
  */
-async function readCurrentVersion(): Promise<string> {
+export async function readCurrentVersion(): Promise<string> {
   let dir = dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
     try {

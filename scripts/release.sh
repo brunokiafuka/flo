@@ -52,7 +52,7 @@ NEW=$(CURRENT="$CURRENT" BUMP="$BUMP" node -e '
 ')
 
 echo "→ $NEW"
-printf "Commit and push to origin/%s? [Y/n] " "$BRANCH"
+printf "Commit, publish to npm, and push to origin/%s? [Y/n] " "$BRANCH"
 read -r ans
 case "$ans" in
   n|N|no|No) echo "Aborted — no changes made."; exit 1 ;;
@@ -69,6 +69,14 @@ PKG="$PKG" NEW="$NEW" node -e '
 
 git add "$PKG"
 git commit -m "flo: release $NEW"
+
+# Publish the bundle BEFORE pushing: `npm publish` runs prepublishOnly, which
+# does a clean `rm -rf dist && tsc` build, so the npm tarball always matches the
+# source being released. If publish fails (e.g. auth/OTP), the commit is still
+# local and un-pushed, so you can fix and re-run without a half-released state.
+echo "Building and publishing flo $NEW to npm…"
+( cd "$(dirname "$PKG")" && npm publish )
+
 git push
 
-echo "✓ Released flo $NEW"
+echo "✓ Released flo $NEW — published to npm and pushed to origin/$BRANCH"
