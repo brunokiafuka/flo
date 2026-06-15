@@ -12,6 +12,7 @@ import {
   readBranchInfo,
   readParents,
   readRecordedBases,
+  scopedFetchRefspecs,
   setParent,
   setParentSha,
   tipsFrom,
@@ -67,7 +68,13 @@ export async function pullTrunk(
   const hasOrigin = (await git(["remote", "get-url", "origin"], { allowFail: true })).exitCode === 0;
   if (!hasOrigin) return "no-remote";
 
-  const fetched = await gitFetch(["origin", "--prune"]);
+  // Scope the fetch + prune to trunk and the branches flo owns. A blanket
+  // `--prune` sweeps every ref in a shared repo and can deadlock on a stale
+  // remote ref (e.g. two refs differing only in case on a case-insensitive
+  // filesystem). See scopedFetchRefspecs.
+  const [info, parents] = await Promise.all([readBranchInfo(), readParents()]);
+  const owned = floManagedBranches(trunk, tipsFrom(info), parents);
+  const fetched = await gitFetch(["origin", "--prune", ...scopedFetchRefspecs(trunk, owned)]);
   if (fetched.exitCode !== 0) fail(`Couldn't reach origin — ${fetched.stderr.trim()}`);
 
   const local = await revParse(trunk);
