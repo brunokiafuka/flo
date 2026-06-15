@@ -4,9 +4,21 @@ import { cliui } from "@poppinss/cliui";
 import { execa } from "execa";
 
 import { resolveConfig } from "../config.js";
-import { currentBranch, git, hasUncommittedChanges, upstreamOf } from "../git.js";
+import {
+  currentBranch,
+  git,
+  hasUncommittedChanges,
+  upstreamOf,
+} from "../git.js";
 import { prTemplatePath, resolveSlot } from "../slot.js";
-import { buildForest, readBranchInfo, readParents, readRecordedBases, restackScope, tipsFrom } from "../stack.js";
+import {
+  buildForest,
+  readBranchInfo,
+  readParents,
+  readRecordedBases,
+  restackScope,
+  tipsFrom,
+} from "../stack.js";
 import { detectTrunk } from "../trunk.js";
 import { colors, fail, success, warn } from "../ui.js";
 import { pushNamedBranch } from "./push.js";
@@ -33,7 +45,10 @@ export type StackCommentEntry = {
  * with 👈 marking the PR this comment is posted on. Wrapped in an invisible
  * sentinel so we can find-and-update our own comment instead of duplicating it.
  */
-export function renderStackComment(entries: StackCommentEntry[], forBranch: string): string {
+export function renderStackComment(
+  entries: StackCommentEntry[],
+  forBranch: string,
+): string {
   // entries arrive base→tip; render tip-on-top so the comment reads like the
   // terminal `flo stack`.
   const rows = entries.map((e) => {
@@ -45,13 +60,15 @@ export function renderStackComment(entries: StackCommentEntry[], forBranch: stri
     FLO_STACK_MARKER,
     ...rows,
     "",
-    "<sub>Stack tip on top, trunk at the bottom · Added via flo 🌊</sub>",
+    "<sub>Stack tip on top, trunk at the bottom · Added via [flo 🌊](https://github.com/brunokiafuka/toolkit/tree/main/tools/flo)</sub>",
     FLO_STACK_END,
   ].join("\n");
 }
 
 /** Pick the id of our managed comment from a PR's comment list, or null. */
-export function pickFloCommentId(comments: { id: number; body: string }[]): number | null {
+export function pickFloCommentId(
+  comments: { id: number; body: string }[],
+): number | null {
   const mine = comments.find((c) => (c.body ?? "").includes(FLO_STACK_MARKER));
   return mine ? mine.id : null;
 }
@@ -71,13 +88,16 @@ async function ensureGh(): Promise<void> {
   try {
     await execa("gh", ["--version"]);
   } catch {
-    fail("`gh` CLI not found. Install it from https://cli.github.com/ and run `gh auth login`.");
+    fail(
+      "`gh` CLI not found. Install it from https://cli.github.com/ and run `gh auth login`.",
+    );
   }
 }
 
 async function openUrl(url: string): Promise<void> {
   const platform = process.platform;
-  const cmd = platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
+  const cmd =
+    platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
   const args = platform === "win32" ? ["/c", "start", "", url] : [url];
   try {
     await execa(cmd, args, { reject: false, stdio: "ignore" });
@@ -97,14 +117,26 @@ async function hasNonEmptyFile(path: string): Promise<boolean> {
 }
 
 /** First commit on `branch` since its `parent` — the natural PR title. */
-async function firstCommitSubject(branch: string, parent: string): Promise<string> {
-  const since = await git(["log", `${parent}..${branch}`, "--reverse", "--format=%s", "-n", "1"], { allowFail: true });
+async function firstCommitSubject(
+  branch: string,
+  parent: string,
+): Promise<string> {
+  const since = await git(
+    ["log", `${parent}..${branch}`, "--reverse", "--format=%s", "-n", "1"],
+    { allowFail: true },
+  );
   const subject = since.stdout.trim();
   if (subject) return subject;
-  return (await git(["log", "-1", "--format=%s", branch], { allowFail: true })).stdout.trim();
+  return (
+    await git(["log", "-1", "--format=%s", branch], { allowFail: true })
+  ).stdout.trim();
 }
 
-async function buildCreateArgs(branch: string, parent: string, isDraft: boolean): Promise<string[]> {
+async function buildCreateArgs(
+  branch: string,
+  parent: string,
+  isDraft: boolean,
+): Promise<string[]> {
   const base = ["pr", "create", "--base", parent, "--head", branch];
   if (isDraft) base.push("--draft");
   const templatePath = prTemplatePath(await resolveSlot());
@@ -118,7 +150,13 @@ async function buildCreateArgs(branch: string, parent: string, isDraft: boolean)
 
 async function lookupPr(branch: string): Promise<PrInfo> {
   try {
-    const r = await execa("gh", ["pr", "view", branch, "--json", "number,url,isDraft,state,baseRefName,title"]);
+    const r = await execa("gh", [
+      "pr",
+      "view",
+      branch,
+      "--json",
+      "number,url,isDraft,state,baseRefName,title",
+    ]);
     return JSON.parse(r.stdout) as NonNullable<PrInfo>;
   } catch {
     return null;
@@ -126,10 +164,16 @@ async function lookupPr(branch: string): Promise<PrInfo> {
 }
 
 /** Create or update our sticky stack-nav comment on a PR. */
-async function upsertStackComment(prNumber: number, body: string): Promise<void> {
+async function upsertStackComment(
+  prNumber: number,
+  body: string,
+): Promise<void> {
   let existingId: number | null = null;
   try {
-    const r = await execa("gh", ["api", `repos/{owner}/{repo}/issues/${prNumber}/comments`]);
+    const r = await execa("gh", [
+      "api",
+      `repos/{owner}/{repo}/issues/${prNumber}/comments`,
+    ]);
     const comments = JSON.parse(r.stdout) as { id: number; body: string }[];
     existingId = pickFloCommentId(comments);
   } catch {
@@ -138,7 +182,14 @@ async function upsertStackComment(prNumber: number, body: string): Promise<void>
   if (existingId !== null) {
     await execa(
       "gh",
-      ["api", "--method", "PATCH", `repos/{owner}/{repo}/issues/comments/${existingId}`, "-f", `body=${body}`],
+      [
+        "api",
+        "--method",
+        "PATCH",
+        `repos/{owner}/{repo}/issues/comments/${existingId}`,
+        "-f",
+        `body=${body}`,
+      ],
       {
         reject: false,
       },
@@ -177,7 +228,8 @@ type Plan = {
 
 async function planFor(branch: string, parent: string): Promise<Plan> {
   const existing = await lookupPr(branch);
-  const title = existing?.title || (await firstCommitSubject(branch, parent)) || branch;
+  const title =
+    existing?.title || (await firstCommitSubject(branch, parent)) || branch;
   let status: PrStatus;
   if (!existing) {
     status = "create";
@@ -187,7 +239,9 @@ async function planFor(branch: string, parent: string): Promise<Plan> {
       status = "updated";
     } else {
       const local = (await git(["rev-parse", branch])).stdout.trim();
-      const remote = (await git(["rev-parse", upstream], { allowFail: true })).stdout.trim();
+      const remote = (
+        await git(["rev-parse", upstream], { allowFail: true })
+      ).stdout.trim();
       status = local && remote && local === remote ? "no update" : "updated";
     }
   }
@@ -202,7 +256,9 @@ function showDirtyTreeHint(): void {
     .add(`Tidy up first, then re-run ${colors.cyan("flo submit")}:`)
     .add("")
     .add(`  ${colors.cyan("flo add")}     stage everything`)
-    .add(`  ${colors.cyan("flo modify")}  fold the changes into your last commit`)
+    .add(
+      `  ${colors.cyan("flo modify")}  fold the changes into your last commit`,
+    )
     .add("")
     .add(colors.dim("— or stage and commit them yourself."))
     .render();
@@ -214,7 +270,8 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
   await ensureGh();
 
   const branch = await currentBranch();
-  if (!branch || branch === "HEAD") fail("You're in detached HEAD — check out a branch first.");
+  if (!branch || branch === "HEAD")
+    fail("You're in detached HEAD — check out a branch first.");
 
   if (await hasUncommittedChanges()) {
     showDirtyTreeHint();
@@ -234,7 +291,8 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
     recordedBases,
   });
 
-  if (branch === trunk) fail(`You're on ${trunk} — switch to a branch to submit.`);
+  if (branch === trunk)
+    fail(`You're on ${trunk} — switch to a branch to submit.`);
 
   // Submit set: path up to current (bottom-up); --all-stack expands to the stack.
   const set = restackScope(forest, branch, !!opts.allStack);
@@ -245,9 +303,13 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
   // Pre-flight: a stale branch will submit a head that isn't rebased on its parent.
   const stale = set.filter((b) => forest.nodes.get(b)?.needsRestack);
   if (stale.length > 0) {
-    warn(`Heads up — these branches need a restack first: ${stale.map((b) => colors.bold(b)).join(", ")}`);
+    warn(
+      `Heads up — these branches need a restack first: ${stale.map((b) => colors.bold(b)).join(", ")}`,
+    );
     console.log(
-      colors.dim(`  Run ${colors.cyan(`flo stack restack${opts.allStack ? " -s" : ""}`)} to heal them, then submit.`),
+      colors.dim(
+        `  Run ${colors.cyan(`flo stack restack${opts.allStack ? " -s" : ""}`)} to heal them, then submit.`,
+      ),
     );
     console.log("");
   }
@@ -259,7 +321,9 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
   // it locally, so submitting now would target a dead base. Re-parent first.
   const merged = plans.filter((p) => p.existing?.state === "MERGED");
   if (merged.length > 0) {
-    warn(`Already merged: ${merged.map((p) => `${colors.bold(p.branch)} (#${p.existing?.number})`).join(", ")}`);
+    warn(
+      `Already merged: ${merged.map((p) => `${colors.bold(p.branch)} (#${p.existing?.number})`).join(", ")}`,
+    );
     console.log(
       colors.dim(
         `  A PR below you has landed. Run ${colors.cyan("flo sync")} then ${colors.cyan(
@@ -278,8 +342,16 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
     console.log("");
     for (const p of plans) {
       const action =
-        p.status === "create" ? "create" : p.retarget ? "retarget" : p.status === "updated" ? "update" : "no change";
-      console.log(`  ${colors.bold(p.branch.padEnd(20))} ${action.padEnd(9)} base=${p.parent}  ${badge(p.status)}`);
+        p.status === "create"
+          ? "create"
+          : p.retarget
+            ? "retarget"
+            : p.status === "updated"
+              ? "update"
+              : "no change";
+      console.log(
+        `  ${colors.bold(p.branch.padEnd(20))} ${action.padEnd(9)} base=${p.parent}  ${badge(p.status)}`,
+      );
     }
     if (set.length > 1) {
       console.log("");
@@ -302,10 +374,16 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
         const push = await pushNamedBranch(p.branch);
         if (push.exitCode !== 0) {
           failed = true;
-          if (/stale info|rejected|non-fast-forward|force-with-lease/i.test(push.stderr)) {
+          if (
+            /stale info|rejected|non-fast-forward|force-with-lease/i.test(
+              push.stderr,
+            )
+          ) {
             return task.error("remote moved on — run flo sync first");
           }
-          return task.error(push.stderr.trim().split("\n").pop() ?? "push failed");
+          return task.error(
+            push.stderr.trim().split("\n").pop() ?? "push failed",
+          );
         }
       }
 
@@ -313,10 +391,16 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
       if (!p.existing) {
         const { prMode } = await resolveConfig();
         const isDraft = prMode === "draft";
-        const r = await execa("gh", await buildCreateArgs(p.branch, p.parent, isDraft), { reject: false });
+        const r = await execa(
+          "gh",
+          await buildCreateArgs(p.branch, p.parent, isDraft),
+          { reject: false },
+        );
         if (r.exitCode !== 0) {
           failed = true;
-          return task.error(r.stderr?.trim().split("\n").pop() ?? "gh pr create failed");
+          return task.error(
+            r.stderr?.trim().split("\n").pop() ?? "gh pr create failed",
+          );
         }
         const url = r.stdout.match(/https?:\/\/\S+/)?.[0] ?? "";
         urls.set(p.branch, url);
@@ -326,10 +410,16 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
         numbers.set(p.branch, p.existing.number);
         urls.set(p.branch, p.existing.url);
         if (p.retarget) {
-          const r = await execa("gh", ["pr", "edit", p.branch, "--base", p.parent], { reject: false });
+          const r = await execa(
+            "gh",
+            ["pr", "edit", p.branch, "--base", p.parent],
+            { reject: false },
+          );
           if (r.exitCode !== 0) {
             failed = true;
-            return task.error(r.stderr?.trim().split("\n").pop() ?? "retarget failed");
+            return task.error(
+              r.stderr?.trim().split("\n").pop() ?? "retarget failed",
+            );
           }
         }
       }
@@ -338,7 +428,8 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
       // the success renderer reads it after the callback resolves, so the line
       // shows "Submitting" while running and "Submitted" once done.
       const n = numbers.get(p.branch);
-      tm.tasks()[idx].title = `Submitted ${n ? `#${n} ` : ""}${p.title} ${badge(p.status)}`;
+      tm.tasks()[idx].title =
+        `Submitted ${n ? `#${n} ` : ""}${p.title} ${badge(p.status)}`;
       return "";
     });
   });
@@ -354,7 +445,11 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
 
     if (entries.length > 1) {
       // Silent + parallel: each PR's comment is independent.
-      await Promise.all(entries.map((e) => upsertStackComment(e.number, renderStackComment(entries, e.branch))));
+      await Promise.all(
+        entries.map((e) =>
+          upsertStackComment(e.number, renderStackComment(entries, e.branch)),
+        ),
+      );
     }
   }
 
@@ -365,6 +460,9 @@ export async function submitCommand(opts: SubmitOpts = {}): Promise<void> {
 
   const { openBrowser } = await resolveConfig();
   const currentPlan = plans.find((p) => p.branch === branch);
-  const shouldOpen = !!url && (openBrowser === "always" || (openBrowser === "new" && currentPlan?.status === "create"));
+  const shouldOpen =
+    !!url &&
+    (openBrowser === "always" ||
+      (openBrowser === "new" && currentPlan?.status === "create"));
   if (shouldOpen) await openUrl(url);
 }

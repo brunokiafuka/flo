@@ -6,6 +6,7 @@ import {
   buildForest,
   currentStack,
   descendantsNeedingRestack,
+  floManagedBranches,
   type ForestInput,
   navBottom,
   navDown,
@@ -48,6 +49,41 @@ const linear: Spec = {
     wire_auth: { parent: "login_form", sha: "wa1", base: "lf1" },
   },
 };
+
+describe("floManagedBranches", () => {
+  const tipsOf = (...names: string[]) => new Map(names.map((n) => [n, `${n}_tip`]));
+
+  test("trunk is always owned, even with no flo branches", () => {
+    const owned = floManagedBranches("main", tipsOf("main"), new Map());
+    assert.deepEqual([...owned].sort(), ["main"]);
+  });
+
+  test("plain local branches with no flo metadata are excluded", () => {
+    const owned = floManagedBranches("main", tipsOf("main", "scratch", "coworkers-wip"), new Map());
+    assert.deepEqual([...owned].sort(), ["main"]);
+  });
+
+  test("branches with a recorded flo-parent are owned", () => {
+    const parents = new Map([
+      ["add_button", "main"],
+      ["login_form", "add_button"],
+    ]);
+    const owned = floManagedBranches("main", tipsOf("main", "add_button", "login_form", "scratch"), parents);
+    assert.deepEqual([...owned].sort(), ["add_button", "login_form", "main"]);
+  });
+
+  test("a plain-git stack base (a flo-parent target with no metadata) is pulled in", () => {
+    const parents = new Map([["feat", "base"]]); // base made with `git checkout -b`, feat stacked via flo
+    const owned = floManagedBranches("main", tipsOf("main", "base", "feat"), parents);
+    assert.deepEqual([...owned].sort(), ["base", "feat", "main"]);
+  });
+
+  test("config pointing at a deleted branch contributes no phantom node", () => {
+    const parents = new Map([["orphan", "ghost"]]); // ghost no longer exists locally
+    const owned = floManagedBranches("main", tipsOf("main", "orphan"), parents);
+    assert.deepEqual([...owned].sort(), ["main", "orphan"]);
+  });
+});
 
 describe("buildForest", () => {
   test("linear chain: parents, children, single root", () => {
