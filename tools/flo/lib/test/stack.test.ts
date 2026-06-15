@@ -14,6 +14,7 @@ import {
   navUp,
   planPrune,
   restackScope,
+  scopedFetchRefspecs,
   stackRootOf,
   subtreeOf,
   topoOrder,
@@ -82,6 +83,42 @@ describe("floManagedBranches", () => {
     const parents = new Map([["orphan", "ghost"]]); // ghost no longer exists locally
     const owned = floManagedBranches("main", tipsOf("main", "orphan"), parents);
     assert.deepEqual([...owned].sort(), ["main", "orphan"]);
+  });
+});
+
+describe("scopedFetchRefspecs", () => {
+  test("trunk only — no flo branches — fetches just trunk", () => {
+    assert.deepEqual(scopedFetchRefspecs("main", new Set(["main"])), [
+      "+refs/heads/main:refs/remotes/origin/main",
+    ]);
+  });
+
+  test("owned branches collapse to their namespace wildcard (deduped)", () => {
+    const owned = new Set(["main", "bruno/add-button", "bruno/login-form"]);
+    assert.deepEqual(scopedFetchRefspecs("main", owned), [
+      "+refs/heads/main:refs/remotes/origin/main",
+      "+refs/heads/bruno/*:refs/remotes/origin/bruno/*",
+    ]);
+  });
+
+  test("multiple namespaces are sorted for determinism", () => {
+    const owned = new Set(["main", "zoe/x", "amy/y", "zoe/z"]);
+    assert.deepEqual(scopedFetchRefspecs("main", owned), [
+      "+refs/heads/main:refs/remotes/origin/main",
+      "+refs/heads/amy/*:refs/remotes/origin/amy/*",
+      "+refs/heads/zoe/*:refs/remotes/origin/zoe/*",
+    ]);
+  });
+
+  test("slashless owned branches contribute no namespace wildcard", () => {
+    // A plain-git base like `wip` has no `user/` prefix to scope a prune to;
+    // it's left to git-merged / cherry / gh merged-detection instead of a
+    // wildcard that could sweep unrelated refs.
+    const owned = new Set(["main", "wip", "bruno/feat"]);
+    assert.deepEqual(scopedFetchRefspecs("main", owned), [
+      "+refs/heads/main:refs/remotes/origin/main",
+      "+refs/heads/bruno/*:refs/remotes/origin/bruno/*",
+    ]);
   });
 });
 

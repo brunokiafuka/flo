@@ -160,6 +160,38 @@ export function floManagedBranches(
 }
 
 /**
+ * The refspecs for a *scoped* `git fetch --prune` — trunk plus each owned
+ * branch's namespace (`user/*`). Restricting the fetch to these keeps both the
+ * fetch and (crucially) the prune inside the branches flo owns, instead of
+ * sweeping every branch in a shared repo.
+ *
+ * This is what stops `flo sync` / `flo stack restack` from tripping over an
+ * unrelated stale ref: a blanket `--prune` walks all of `refs/remotes/origin/*`,
+ * and on a case-insensitive filesystem two refs that differ only in case
+ * (`origin/PhilipCorr/x` vs `origin/philipcorr/x`) map to one `.lock` path and
+ * deadlock the whole fetch. Scoping to `user/*` sidesteps that entirely while
+ * still pruning owned branches' upstreams so merged-branch detection keeps
+ * seeing their `[gone]` marker.
+ *
+ * Slashless owned branches (a plain-git base like `wip`) have no namespace to
+ * scope a prune to, so they get no wildcard — their merged-ness is still caught
+ * by git-merged / cherry / gh detection. Pure.
+ */
+export function scopedFetchRefspecs(trunk: string, owned: Set<string>): string[] {
+  const specs = [`+refs/heads/${trunk}:refs/remotes/origin/${trunk}`];
+  const prefixes = new Set<string>();
+  for (const branch of owned) {
+    if (branch === trunk) continue;
+    const slash = branch.indexOf("/");
+    if (slash > 0) prefixes.add(branch.slice(0, slash));
+  }
+  for (const prefix of [...prefixes].sort()) {
+    specs.push(`+refs/heads/${prefix}/*:refs/remotes/origin/${prefix}/*`);
+  }
+  return specs;
+}
+
+/**
  * Resolve a branch's *effective* parent:
  *  - trunk has none (forest root)
  *  - a `flo-parent` pointing at an existing local branch wins
