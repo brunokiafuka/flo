@@ -5,6 +5,7 @@ import { git, gitFetch, localBranches } from "./git.js";
 import {
   buildForest,
   clearParent,
+  floManagedBranches,
   type Forest,
   getParentSha,
   planPrune,
@@ -50,7 +51,12 @@ export async function loadForest(): Promise<Forest> {
     readParents(),
     readRecordedBases(),
   ]);
-  return buildForest({ trunk, tips: tipsFrom(info), parents, recordedBases });
+  // Scope the forest to branches flo owns — never sweep plain local branches
+  // (a coworker's checkout, a scratch branch) into a sync/restack or prune.
+  const tips = tipsFrom(info);
+  const owned = floManagedBranches(trunk, tips, parents);
+  const ownedTips = new Map([...tips].filter(([branch]) => owned.has(branch)));
+  return buildForest({ trunk, tips: ownedTips, parents, recordedBases });
 }
 
 /** Fetch origin and fast-forward local trunk (without a checkout when off-trunk). */

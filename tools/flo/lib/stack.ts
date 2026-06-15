@@ -138,6 +138,28 @@ export type ForestInput = {
 };
 
 /**
+ * The branches flo actually owns in this repo — the only ones `flo sync` /
+ * `flo stack restack` and the stack view should ever touch. That's: trunk,
+ * every local branch with a recorded flo-parent, and any local branch that is
+ * itself a flo-parent (a stack base someone made with plain `git checkout -b`).
+ *
+ * Plain local branches with no flo metadata are deliberately left out, so a
+ * sync never rebases or prunes a branch flo didn't create. Pure.
+ */
+export function floManagedBranches(
+  trunk: string,
+  tips: Map<string, string>,
+  parents: Map<string, string>,
+): Set<string> {
+  const managed = new Set<string>([trunk]);
+  for (const [branch, parent] of parents) {
+    if (tips.has(branch)) managed.add(branch);
+    if (tips.has(parent)) managed.add(parent);
+  }
+  return managed;
+}
+
+/**
  * Resolve a branch's *effective* parent:
  *  - trunk has none (forest root)
  *  - a `flo-parent` pointing at an existing local branch wins
